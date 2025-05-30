@@ -23,5 +23,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Quantia/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
 volumes:
   postgres_data:

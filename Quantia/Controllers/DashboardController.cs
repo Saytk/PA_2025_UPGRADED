@@ -19,7 +19,7 @@ public class DashboardController : Controller
         string topic = "gold";
         int limit = 10;
 
-        string apiUrl = $"http://192.168.0.26:8000/analyze?topic={topic}&limit={limit}";
+        string apiUrl = $"http://172.20.0.3:8000/analyze?topic={topic}&limit={limit}";
 
         RedditAnalysisResultModel result = null;
 
