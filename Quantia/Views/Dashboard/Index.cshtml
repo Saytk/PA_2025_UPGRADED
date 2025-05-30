@@ -1,0 +1,152 @@
+﻿
+@{
+    Layout = null;
+    ViewBag.Section = "Dashboard";
+    @model Quantia.Models.RedditAnalysisResultModel
+}
+<h2>Analyse Reddit</h2>
+
+@if (ViewBag.ApiError != null)
+{
+    <div class="alert alert-danger">@ViewBag.ApiError</div>
+}
+else if (Model != null)
+{
+    <div class="alert alert-info">
+        <strong>Résumé :</strong>
+        <p>@Model.Summary</p>
+    </div>
+}
+else
+{
+    <p>Aucune donnée reçue.</p>
+}
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f9fafb;
+        }
+
+        .container {
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-right: 1px solid #e5e7eb;
+            height: 100vh;
+        }
+
+            .sidebar h2 {
+                font-size: 22px;
+                margin-bottom: 30px;
+            }
+
+        .nav {
+            list-style-type: none;
+            padding: 0;
+        }
+
+            .nav li {
+                margin-bottom: 15px;
+            }
+
+            .nav a {
+                text-decoration: none;
+                color: #374151;
+                font-size: 15px;
+                display: flex;
+                align-items: center;
+            }
+
+                .nav a:hover,
+                .nav .active a {
+                    color: #2563eb;
+                    font-weight: bold;
+                }
+
+        .main {
+            padding: 40px;
+            flex-grow: 1;
+        }
+
+            .main h1 {
+                font-size: 26px;
+                margin-bottom: 30px;
+            }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+        }
+
+            .card h3 {
+                margin-top: 0;
+                margin-bottom: 10px;
+                font-size: 18px;
+            }
+
+            .card p {
+                margin: 0;
+                color: #6b7280;
+            }
+
+        .no-style {
+            text-decoration: none;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div style="display: flex;">
+        @Html.Partial("~/Views/Shared/_Sidebar.cshtml")
+
+        <div style="flex-grow: 1; padding: 40px;">
+            <h1>Dashboard</h1>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>Follow Strategy</h3>
+                    <p>Adopt a predefined trading strategy</p>
+                </div>
+                <div class="card">
+                    <a href="@Url.Action("CreateStrategy", "Strategy")" class="btn-create no-style">
+                        <h3>Create Strategy</h3>
+                        <p>Define a custom trading strategy</p>
+                    </a>
+                </div>
+                <div class="card">
+                    <h3>Track Assets</h3>
+                    <p>Monitor the performance of active assets</p>
+                </div>
+                <div class="card">
+                    <h3>News Assets</h3>
+                    <p>Track recent news of an asset</p>
+                </div>
+                <div class="card">
+                    <h3>Create Portfolio</h3>
+                    <p>Build a collection of investments</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,104 @@
+﻿@model Quantia.Models.RegisterViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Register</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .register-form {
+            background-color: white;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 320px;
+            text-align: center;
+        }
+
+            .register-form h1 {
+                margin-bottom: 10px;
+                font-size: 28px;
+            }
+
+            .register-form p {
+                color: #666;
+                margin-bottom: 25px;
+            }
+
+            .register-form input[type="text"],
+            .register-form input[type="email"],
+            .register-form input[type="password"] {
+                width: 100%;
+                padding: 12px;
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+
+            .register-form button {
+                width: 100%;
+                background-color: #1d4ed8;
+                color: white;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+                .register-form button:hover {
+                    background-color: #2563eb;
+                }
+
+            .register-form .login-link {
+                margin-top: 15px;
+                font-size: 14px;
+            }
+
+                .register-form .login-link a {
+                    color: #1d4ed8;
+                    text-decoration: none;
+                }
+
+                    .register-form .login-link a:hover {
+                        text-decoration: underline;
+                    }
+    </style>
+</head>
+<body>
+    <div class="register-form">
+        <h1>Quantia</h1>
+        <p>Create a new account</p>
+
+        @using (Html.BeginForm("Register", "Account", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            @Html.TextBoxFor(m => m.Username, new { placeholder = "Username" })
+            @Html.ValidationMessageFor(m => m.Username)
+
+            @Html.TextBoxFor(m => m.Email, new { placeholder = "Email", type = "email" })
+            @Html.ValidationMessageFor(m => m.Email)
+
+            <button type="submit">Sign Up</button>
+        }
+
+        <div class="login-link">
+            Already have an account? <a href="@Url.Action("Login", "Account")">Log in</a>
+        </div>
+    </div>
+</body>
+</html>

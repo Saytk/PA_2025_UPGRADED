@@ -1,0 +1,93 @@
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+
+# IIS Express
+.vscode/
+.vs/
+*.vspscc
+*.vssscc
+*.dbmdl
+*.dbproj.schemaview
+*.pfx
+*.publishsettings
+Generated_Code/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# dotCover
+.idea/
+*.dotCover
+
+# Others
+*.log
+*.tlog
+*.cache
+*.bak
+*.ncb
+*.snk
+*.psess
+*.vsp
+*.pdb
+*.pidb
+*.svclog
+*.scc
+
+# MacOS / Linux
+.DS_Store
+*.swp
+*.swo
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Environment
+.env
+.env.*
+
+# Publish output
+publish/
+App_Data/
+wwwroot/lib/
+node_modules/
+
+# Logs
+*.log
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# Entity Framework
+Migrations/
+
+# Local .NET Tools
+.localtoolstarget/
+
+# JetBrains Rider
+.idea/
+*.sln.iml
