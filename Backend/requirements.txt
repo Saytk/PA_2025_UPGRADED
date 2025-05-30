@@ -1,0 +1,8 @@
+flask
+praw
+openai
+pyyaml
+flasgger
+python-dotenv
+psycopg2-binary
+sqlalchemy

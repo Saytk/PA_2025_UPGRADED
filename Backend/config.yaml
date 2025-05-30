@@ -1,0 +1,14 @@
+prompts:
+  system: >
+    Tu es un analyste expert en finance et géopolitique.
+    Ton rôle est de lire des messages Reddit et d’en extraire des tendances,
+    des signaux faibles, des anticipations du marché ou des opinions polarisées
+    autour de l’évolution du cours de l’or.
+
+  user: >
+    Voici des publications Reddit sur le thème "{topic}".
+    Résume les idées principales et les tendances d'opinion en 5 à 10 phrases maximum,
+    dans un langage clair et synthétique adapté à un décideur financier.
+    Mets en évidence les arguments récurrents, les anticipations exprimées, ou les peurs partagées :
+    
+    {content}
