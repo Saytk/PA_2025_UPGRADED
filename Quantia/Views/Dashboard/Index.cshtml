@@ -2,26 +2,7 @@
 @{
     Layout = null;
     ViewBag.Section = "Dashboard";
-    @model Quantia.Models.RedditAnalysisResultModel
 }
-<h2>Analyse Reddit</h2>
-
-@if (ViewBag.ApiError != null)
-{
-    <div class="alert alert-danger">@ViewBag.ApiError</div>
-}
-else if (Model != null)
-{
-    <div class="alert alert-info">
-        <strong>Résumé :</strong>
-        <p>@Model.Summary</p>
-    </div>
-}
-else
-{
-    <p>Aucune donnée reçue.</p>
-}
-
 
 <!DOCTYPE html>
 <html>
@@ -87,7 +68,7 @@ else
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
             gap: 20px;
         }
 
@@ -142,8 +123,10 @@ else
                     <p>Track recent news of an asset</p>
                 </div>
                 <div class="card">
-                    <h3>Create Portfolio</h3>
-                    <p>Build a collection of investments</p>
+                    <a href="@Url.Action("Index", "Portfolio")" class="btn-create no-style">
+                        <h3>Create Portfolio</h3>
+                        <p>Build a collection of investments</p>
+                    </a>
                 </div>
             </div>
         </div>

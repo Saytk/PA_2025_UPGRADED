@@ -2,6 +2,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Ajouter MVC classique (pas Razor Pages)
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
