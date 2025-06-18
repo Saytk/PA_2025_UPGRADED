@@ -7,7 +7,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Dashboard</title>
+    <title>Technical Analysis</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         body {
@@ -39,6 +39,7 @@
             border-radius: 10px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             border: 1px solid #e5e7eb;
+            margin-bottom: 40px;
         }
     </style>
 </head>
@@ -49,6 +50,7 @@
         <div class="main">
             <h1>Technical Analysis</h1>
 
+            <!-- 🔹 Section Candlestick -->
             <div class="card">
                 <div style="margin-bottom: 20px;">
                     <label>
@@ -71,15 +73,20 @@
                     <button onclick="loadCandlestickData()">Load</button>
                 </div>
 
-
                 <h3>Candlestick Chart</h3>
                 <div id="candlestick-chart" style="max-width: 1000px; margin: auto;"></div>
+            </div>
+
+            <!-- 🔹 Section Prédiction IA -->
+            <div class="card">
+                <h3>AI Predictions</h3>
+                <div id="ai-prediction-chart" style="max-width: 1000px; margin: auto;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        let chart; // Global to allow update
+        let chart; // Pour candlestick
 
         async function loadCandlestickData() {
             const symbol = document.getElementById('symbolSelect').value;
@@ -123,14 +130,81 @@
 
             } catch (error) {
                 console.error('Error loading candlestick data:', error);
-                alert("Failed to load data from API.");
+                alert("Failed to load candlestick data from API.");
             }
         }
 
-        // Charger automatiquement au démarrage
-        window.onload = loadCandlestickData;
+        async function loadPredictions() {
+            try {
+                const res = await fetch("/api/candlestick/predict?symbol=BTCUSDT");
+                const json = await res.json();
+
+                const timestamps = json.predictions.map(p => p.timestamp_utc);
+                const closes = json.predictions.map(p => p.close);
+                const predictions = json.predictions.map(p => p.prediction);
+
+                const options = {
+                    chart: {
+                        type: 'line',
+                        height: 400,
+                        zoom: { enabled: true }
+                    },
+                    title: {
+                        text: 'BTCUSDT - Close Price & AI Prediction',
+                        align: 'left'
+                    },
+                    xaxis: {
+                        categories: timestamps,
+                        type: 'datetime',
+                        labels: {
+                            rotate: -45,
+                            format: 'HH:mm'
+                        }
+                    },
+                    yaxis: [
+                        {
+                            title: { text: 'Price (USD)' }
+                        },
+                        {
+                            opposite: true,
+                            max: 1,
+                            min: 0,
+                            title: { text: 'Prediction Score' }
+                        }
+                    ],
+                    tooltip: {
+                        shared: true,
+                        intersect: false
+                    },
+                    series: [
+                        {
+                            name: "Close Price",
+                            data: closes,
+                            type: 'line'
+                        },
+                        {
+                            name: "AI Prediction (probability)",
+                            data: predictions,
+                            type: 'line',
+                            yAxisIndex: 1,
+                            stroke: { dashArray: 4 }
+                        }
+                    ]
+                };
+
+                const predictionChart = new ApexCharts(document.querySelector("#ai-prediction-chart"), options);
+                predictionChart.render();
+
+            } catch (error) {
+                console.error("Erreur lors du chargement des prédictions :", error);
+                alert("Impossible de charger les prédictions depuis l'API.");
+            }
+        }
+
+        window.onload = () => {
+            loadCandlestickData();
+            loadPredictions();
+        };
     </script>
-
 </body>
-
 </html>
