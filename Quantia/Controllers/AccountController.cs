@@ -1,42 +1,50 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Quantia.Models;
 
 namespace Quantia.Controllers
 {
     public class AccountController : Controller
     {
-        // GET: /Account/Register
-        public ActionResult Register()
+        private readonly AppDbContext _context;
+
+        public AccountController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpGet]
+        public IActionResult Register()
         {
             return View();
         }
 
-        // POST: /Account/Register
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(UserModel user)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
+                return View(user);
+
+            // Vérification d'unicité de l'email
+            bool emailExists = await _context.Users.AnyAsync(u => u.Email == user.Email);
+            if (emailExists)
             {
-                // Enregistrer l'utilisateur ici (base de données, etc.)
-                return RedirectToAction("Login");
+                ModelState.AddModelError("Email", "Cet email est déjà utilisé.");
+                return View(user);
             }
 
-            return View(model);
+            // Ajout de l'utilisateur
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            // Rediriger après succès
+            return RedirectToAction("Login");
         }
 
-        public ActionResult Login()
+        [HttpGet]
+        public IActionResult Login()
         {
             return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Login(string username, string password)
-        {
-            // Pour l'instant, pas de validation réelle
-            // Redirige directement vers le Dashboard
-            return RedirectToAction("Index", "Dashboard");
         }
     }
 }
