@@ -1,4 +1,5 @@
-﻿
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model Quantia.Models.UserModel
 @{
     Layout = null;
     ViewBag.Section = "Settings";
@@ -84,12 +85,15 @@
             <p style="color: #6b7280;">Manage your preferences and account settings below.</p>
 
             <div class="card">
-                <form>
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" value="JohnDoe" />
+                <form asp-action="Index" asp-controller="Settings" method="post">
+                    @Html.AntiForgeryToken()
+                    <label for="LastName">Last Name</label>
+                    <input asp-for="LastName" type="text" />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
 
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="john.doe@example.com" />
+                    <input asp-for="Email" type="email"/>
+                    <span asp-validation-for="Email" class="text-danger"></span>
 
                     <label for="theme">Theme</label>
                     <select id="theme" name="theme">
@@ -104,13 +108,6 @@
 
                     <button type="submit">Save Changes</button>
 
-                </form>
-                <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;" />
-
-                <form method="get" action="@Url.Action("Login", "Account")">
-                    <button type="submit" style="background-color: #ef4444; margin-top: 10px;">
-                        Logout
-                    </button>
                 </form>
 
             </div>

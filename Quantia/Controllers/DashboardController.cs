@@ -1,13 +1,10 @@
-﻿using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Quantia.Models;
 
+[Authorize]
 public class DashboardController : Controller
 {
-    public ActionResult Index()
+    public IActionResult Index()
     {
         return View();
     }
