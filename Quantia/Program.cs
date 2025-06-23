@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Quantia.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<SentimentFileService>();
 builder.Services.AddSession();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>

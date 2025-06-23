@@ -3,97 +3,102 @@ using Microsoft.EntityFrameworkCore;
 using Quantia.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Hosting;
 
 namespace Quantia.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly AppDbContext _context;
+        // --- constante pour éviter les "magical strings" ---
+        private const string AuthScheme = "QuantiaAuth";
 
-        public AccountController(AppDbContext context)
-        {
-            _context = context;
-        }
+        private readonly AppDbContext _context;
+        public AccountController(AppDbContext context) => _context = context;
+
+        /* ---------- INSCRIPTION ---------- */
 
         [HttpGet]
-        public IActionResult Register()
-        {
-            return View();
-        }
+        public IActionResult Register() => View();
 
         [HttpPost]
         public async Task<IActionResult> Register(UserModel user)
         {
-            if (!ModelState.IsValid)
-                return View(user);
+            if (!ModelState.IsValid) return View(user);
 
-            var emailExists = await _context.Users.AnyAsync(u => u.Email == user.Email);
-            if (emailExists)
+            if (await _context.Users.AnyAsync(u => u.Email == user.Email))
             {
                 ModelState.AddModelError("Email", "Cet email est déjà utilisé.");
                 return View(user);
             }
 
-            // ✅ Hasher le mot de passe ici
             user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
             return RedirectToAction("Login");
         }
+
+        /* ---------- CONNEXION ---------- */
 
         [HttpGet]
         public async Task<IActionResult> Login()
         {
-            // Déconnexion automatique si un utilisateur est déjà connecté
             if (User.Identity?.IsAuthenticated == true)
-            {
-                await HttpContext.SignOutAsync("QuantiaAuth");
-            }
+                await HttpContext.SignOutAsync(AuthScheme);
 
             return View();
         }
 
-
         [HttpPost]
         public async Task<IActionResult> Login(LoginModel login)
         {
-            if (!ModelState.IsValid)
-                return View(login);
+            if (!ModelState.IsValid) return View(login);
 
-            var userInDb = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
-            if (userInDb == null || !BCrypt.Net.BCrypt.Verify(login.Password, userInDb.Password))
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == login.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
             {
                 ModelState.AddModelError(string.Empty, "Email ou mot de passe invalide.");
                 return View(login);
             }
 
-            // Création des claims
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, userInDb.Id.ToString()),
-                new Claim(ClaimTypes.Name, userInDb.LastName),
-                new Claim(ClaimTypes.Email, userInDb.Email)
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name,           user.LastName),
+                new Claim(ClaimTypes.Email,          user.Email)
             };
 
-            // Construction de l’identité
-            var identity = new ClaimsIdentity(claims, "QuantiaAuth");
-            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(
+                AuthScheme,
+                new ClaimsPrincipal(new ClaimsIdentity(claims, AuthScheme)));
 
-            // Connexion via cookies
-            await HttpContext.SignInAsync("QuantiaAuth", principal);
-
-            // Redirection post-login
             return RedirectToAction("Index", "Dashboard");
-
         }
 
-        public IActionResult Index()
+        public IActionResult Index() => View();
+
+        /* ---------- LOGIN FACTICE POUR LE DEV ---------- */
+#if DEBUG
+        [HttpGet("/dev-login")]
+        [AllowAnonymous]
+        public async Task<IActionResult> DevLogin()
         {
-            return View();
-        }
-    }
+            var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            if (!env.IsDevelopment()) return NotFound();
 
+            var fakeClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, "0"),
+                new Claim(ClaimTypes.Name,           "DevUser"),
+                new Claim(ClaimTypes.Email,          "dev@example.com")
+            };
+
+            await HttpContext.SignInAsync(
+                AuthScheme,
+                new ClaimsPrincipal(new ClaimsIdentity(fakeClaims, AuthScheme)));
+
+            return RedirectToAction("Index", "Dashboard");
+        }
+#endif
+    }
 }
