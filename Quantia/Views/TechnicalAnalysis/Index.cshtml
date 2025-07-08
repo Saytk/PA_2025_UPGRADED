@@ -22,8 +22,9 @@
                 <div style="margin-bottom: 20px;">
                     <label>
                         Symbol:
-                        <select id="symbolSelect">
-                            <option value="BTCUSDT">BTCUSDT</option>
+                        <select id="symbolSelect" style="width:30%">
+                            <option value="BTCUSDT">BITCOIN</option>
+                            <option value="ETHUSDT">ETHERUM</option>
                         </select>
                     </label>
 
@@ -56,6 +57,8 @@
         let chart; // Pour candlestick
 
         async function loadCandlestickData() {
+            const select = document.getElementById("symbolSelect");
+            const symbolText = select.options[select.selectedIndex].text;
             const symbol = document.getElementById('symbolSelect').value;
             const start = document.getElementById('startDate').value;
             const end = document.getElementById('endDate').value;
@@ -73,7 +76,7 @@
 
                 const options = {
                     chart: { type: 'candlestick', height: 400 },
-                    title: { text: `${symbol} Candlestick Chart`, align: 'left' },
+                    title: { text: `${symbolText} Candlestick Chart`, align: 'left' },
                     xaxis: { type: 'datetime' },
                     yaxis: { tooltip: { enabled: true } },
                     plotOptions: {
@@ -103,6 +106,9 @@
 
         async function loadPredictions() {
             try {
+                const select = document.getElementById("symbolSelect");
+                const symbolText = select.options[select.selectedIndex].text;
+                const symbol = document.getElementById('symbolSelect').value;
                 const res = await fetch("/api/candlestick/predict?symbol=BTCUSDT");
                 const json = await res.json();
 
@@ -117,7 +123,7 @@
                         zoom: { enabled: true }
                     },
                     title: {
-                        text: 'BTCUSDT - Close Price & AI Prediction',
+                        text: `${symbolText} - Close Price & AI Prediction`,
                         align: 'left'
                     },
                     xaxis: {
