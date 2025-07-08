@@ -91,3 +91,4 @@ Migrations/
 # JetBrains Rider
 .idea/
 *.sln.iml
+/Quantia/Jobs/SentimentAnalysisJob/__pycache__

@@ -9,12 +9,33 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+    <Compile Remove="NewFolder1\**" />
+    <Content Remove="NewFolder1\**" />
+    <EmbeddedResource Remove="NewFolder1\**" />
+    <None Remove="NewFolder1\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\" />
-    <Folder Include="Views\" />
+    <Content Include="Jobs\SentimentAnalysisJob\.idea\inspectionProfiles\profiles_settings.xml" />
+    <Content Include="Jobs\SentimentAnalysisJob\.idea\misc.xml" />
+    <Content Include="Jobs\SentimentAnalysisJob\.idea\modules.xml" />
+    <Content Include="Jobs\SentimentAnalysisJob\.idea\workspace.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Jobs\SentimentAnalysisJob\.idea\.gitignore" />
+    <None Include="Jobs\SentimentAnalysisJob\.idea\.name" />
+    <None Include="Jobs\SentimentAnalysisJob\.idea\pa.iml" />
   </ItemGroup>
 
 </Project>
