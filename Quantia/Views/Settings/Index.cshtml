@@ -1,7 +1,7 @@
 ﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @model Quantia.Models.UserModel
 @{
-    Layout = null;
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.Section = "Settings";
 }
 
@@ -17,26 +17,6 @@
             background-color: #f9fafb;
         }
 
-        .main {
-            padding: 40px;
-            flex-grow: 1;
-        }
-
-        .card {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-            max-width: 600px;
-            margin-top: 30px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
 
         input[type="text"],
         input[type="email"],
@@ -78,9 +58,8 @@
 </head>
 <body>
     <div style="display: flex;">
-        @Html.Partial("~/Views/Shared/_Sidebar.cshtml")
 
-        <div class="main">
+        <div>
             <h1 style="font-size: 28px;">Settings</h1>
             <p style="color: #6b7280;">Manage your preferences and account settings below.</p>
 

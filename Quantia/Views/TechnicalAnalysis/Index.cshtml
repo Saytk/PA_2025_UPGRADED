@@ -1,5 +1,5 @@
 ﻿@{
-    Layout = null;
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.Section = "TechnicalAnalysis";
 }
 
@@ -9,45 +9,12 @@
     <meta charset="utf-8" />
     <title>Technical Analysis</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f9fafb;
-        }
 
-        .container {
-            display: flex;
-        }
-
-        .sidebar {
-            width: 220px;
-            background-color: #ffffff;
-            padding: 20px;
-            border-right: 1px solid #e5e7eb;
-            height: 100vh;
-        }
-
-        .main {
-            padding: 40px;
-            flex-grow: 1;
-        }
-
-        .card {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e5e7eb;
-            margin-bottom: 40px;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        @Html.Partial("~/Views/Shared/_Sidebar.cshtml")
+    <div class="dashboard-grid">
 
-        <div class="main">
+        <div class="">
             <h1>Technical Analysis</h1>
 
             <!-- 🔹 Section Candlestick -->
