@@ -1,16 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Quantia.Services;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           );
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<SentimentFileService>();
 builder.Services.AddSession();
+builder.Services.AddHttpClient<PortfolioPriceService>();
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {

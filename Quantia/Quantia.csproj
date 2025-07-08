@@ -33,10 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="Jobs\SentimentAnalysisJob\.idea\.gitignore" />
     <None Include="Jobs\SentimentAnalysisJob\.idea\.name" />
     <None Include="Jobs\SentimentAnalysisJob\.idea\pa.iml" />

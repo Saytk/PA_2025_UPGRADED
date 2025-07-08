@@ -1,0 +1,19 @@
+﻿@model Quantia.Models.TradeModel
+@{
+    ViewBag.Section = "Portfolio";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Close Trade: @Model.CryptoSymbol</h2>
+
+<form asp-controller="Trade" asp-action="Close" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <label>Sell Price</label>
+    <input asp-for="SellPrice" required />
+
+    <label>Sell Date</label>
+    <input asp-for="SellDate" type="datetime-local" required />
+
+    <button type="submit">Close Trade</button>
+</form>
