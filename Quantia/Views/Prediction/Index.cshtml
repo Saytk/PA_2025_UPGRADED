@@ -1,15 +1,16 @@
 ﻿@{
-    Layout = null;
+    ViewBag.Section = "Prediction";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <title>Crypto Forecast — Prediction Dashboard</title>
-    <link  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
+<h1>Prediction</h1>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">    
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js" integrity="sha384-tO9sf7DbNI60vZqNSXwKdISdW4NOWS4dtSYg4zXgsOsmKRcBPylcyxvzTC3N6ki2" crossorigin="anonymous"></script>
+<style>
         /* styles identiques à la version précédente */
         body{margin:0;font-family:'Segoe UI',sans-serif;background:#f9fafb;}
         .main{padding:40px;flex-grow:1;}
@@ -18,10 +19,8 @@
         .prediction-medium{background:rgba(255,255,0,.2);}
         .prediction-low{background:rgba(255,0,0,.2);}
     </style>
-</head>
 <body>
     <div style="display:flex;">
-        @Html.Partial("~/Views/Shared/_Sidebar.cshtml")
         <div class="main container-fluid">
             <nav class="navbar navbar-light bg-light mb-4 rounded">
                 <a class="navbar-brand" href="/Prediction">Crypto Forecasting</a>
@@ -36,13 +35,13 @@
             <form id="config-form" class="row g-3 mb-4">
                 <div class="col-md-5">
                     <label class="form-label">API URL</label>
-                    <input id="api-url" class="form-control" value="http://localhost:8009/predict-latest" />
+                    <input id="api-url" class="form-control" value="http://localhost:8006/predict-latest" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Symbol</label>
                     <input id="symbol" class="form-control" value="BTCUSDT" />
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-2 d-flex align-items-md-center">
                     <button class="btn btn-primary w-100">Fetch Predictions</button>
                 </div>
             </form>
@@ -134,4 +133,3 @@
         }
     </script>
 </body>
-</html>
