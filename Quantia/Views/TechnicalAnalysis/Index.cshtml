@@ -8,13 +8,24 @@
 <head>
     <meta charset="utf-8" />
     <title>Technical Analysis</title>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts" integrity="sha384-Hf0cGsweCbozkRP14s5KIue6STJYKaoipB/i1gTdbX+umKD59qA/Szk42FPMuKtB" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts" integrity="sha384-unxUBkb3z/RpcMq0hNQRqod/tnpd6a4g2/VYXCA4ZmgVTWc2a/QUl1CiHt5MN7Q2" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="dashboard-grid">
 
         <div class="">
             <h1>Technical Analysis</h1>
+            <div id="pattern-summary" style="
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    background-color: #f5f5f5;
+    font-weight: bold;
+    font-size: 1.1rem;
+">
+                🔍 Analyse en attente...
+            </div>
 
             <!-- 🔹 Section Candlestick -->
             <div class="card">
@@ -23,32 +34,47 @@
                         Symbol:
                         <select id="symbolSelect" style="width:30%">
                             <option value="BTCUSDT">BITCOIN</option>
-                            <option value="ETHUSDT">ETHERUM</option>
+                            <option value="ETHUSDT">ETHEREUM</option>
                         </select>
                     </label>
 
                     <label>
                         Start Date:
-                        <input type="datetime-local" id="startDate" value="2025-07-07T09:00" />
+                        <input type="datetime-local" id="startDate" value="2025-07-11T13:50" />
                     </label>
 
                     <label>
                         End Date:
-                        <input type="datetime-local" id="endDate" value="2025-07-07T09:00" />
+                        <input type="datetime-local" id="endDate" value="2025-07-11T14:15" />
                     </label>
 
-                    <button onclick="loadCandlestickData()">Load</button>
+                    <button onclick="loadCandlestickData();loadPatterns();">Load</button>
                 </div>
 
                 <h3>Candlestick Chart</h3>
                 <div id="candlestick-chart" style="max-width: 1000px; margin: auto;"></div>
             </div>
+            <h3>Top Patterns Détectés</h3>
+            <table id="patterns-table" border="1" style="width: 100%; text-align: center;">
+                <thead>
+                    <tr>
+                        <th>Début</th>
+                        <th>Fin</th>
+                        <th>Séquence</th>
+                        <th>Direction</th>
+                        <th>Bias</th>
+                    </tr>
+                </thead>
+                <tbody id="patterns-body">
+                </tbody>
+            </table>
 
         </div>
     </div>
 
     <script>
-        let chart; // Pour candlestick
+        let chart;
+        let annotations = [];
 
         async function loadCandlestickData() {
             const select = document.getElementById("symbolSelect");
@@ -64,15 +90,31 @@
                 const json = await res.json();
 
                 const transformed = json.data.map(d => ({
-                    x: new Date(d.timestamp_utc).toISOString(),
+                    x: new Date(d.timestamp_utc).getTime(),  // use timestamp to avoid timezone shift
                     y: [d.open, d.high, d.low, d.close]
                 }));
 
                 const options = {
-                    chart: { type: 'candlestick', height: 400 },
-                    title: { text: `${symbolText} Candlestick Chart`, align: 'left' },
-                    xaxis: { type: 'datetime' },
-                    yaxis: { tooltip: { enabled: true } },
+                    chart: {
+                        type: 'candlestick',
+                        height: 400
+                    },
+                    title: {
+                        text: `${symbolText} Candlestick Chart`,
+                        align: 'left'
+                    },
+                    xaxis: {
+                        type: 'datetime',
+                        labels: {
+                            formatter: function (val, timestamp) {
+                                const d = new Date(timestamp);
+                                return d.toISOString().slice(11, 16); // Display in HH:mm UTC
+                            }
+                        }
+                    },
+                    yaxis: {
+                        tooltip: { enabled: true }
+                    },
                     plotOptions: {
                         candlestick: {
                             colors: {
@@ -81,14 +123,20 @@
                             }
                         }
                     },
-                    series: [{ data: transformed }]
+                    series: [{ data: transformed }],
+                    annotations: {
+                        xaxis: annotations
+                    }
                 };
 
                 if (!chart) {
                     chart = new ApexCharts(document.querySelector("#candlestick-chart"), options);
                     chart.render();
                 } else {
-                    chart.updateOptions({ title: { text: `${symbol} Candlestick Chart` } });
+                    chart.updateOptions({
+                        title: { text: `${symbolText} Candlestick Chart` },
+                        annotations: { xaxis: annotations }
+                    });
                     chart.updateSeries([{ data: transformed }]);
                 }
 
@@ -97,9 +145,92 @@
                 alert("Failed to load candlestick data from API.");
             }
         }
+
+        async function loadPatterns() {
+            const symbol = document.getElementById('symbolSelect').value;
+            const start = document.getElementById('startDate').value;
+            const end = document.getElementById('endDate').value;
+
+            const url = `/api/candlestick/patterns?symbol=${symbol}&start_date=${start}&end_date=${end}`;
+
+            try {
+                const res = await fetch(url);
+                const json = await res.json();
+
+                const body = document.getElementById("patterns-body");
+                body.innerHTML = "";
+
+                annotations = json.patterns_detected.map(p => {
+                    return {
+                        x: new Date(p.end_timestamp).getTime(),
+                        label: {
+                            text: p.direction === "bullish" ? "📈 Pattern haussier" : "📉 Pattern baissier",
+                            style: {
+                                background: p.direction === "bullish" ? "#b9f6ca" : "#ffcdd2",
+                                color: "#000",
+                                fontWeight: "bold"
+                            }
+                        }
+                    };
+                });
+
+                json.patterns_detected.forEach(p => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${p.start_timestamp}</td>
+                        <td>${p.end_timestamp}</td>
+                        <td>${p.sequence.join(", ")}</td>
+                        <td>${p.direction}</td>
+                        <td>${p.bias.toFixed(3)}</td>
+                    `;
+                    body.appendChild(row);
+                });
+
+                const summaryDiv = document.getElementById("pattern-summary");
+
+                if (json.patterns_detected.length > 0) {
+                    const top = json.patterns_detected[0];
+                    const color = top.direction === "bullish" ? "#d1f7d1" :
+                                  top.direction === "bearish" ? "#f8d7da" : "#e2e3e5";
+                    const emoji = top.direction === "bullish" ? "📈 Achat potentiel" :
+                                  top.direction === "bearish" ? "📉 Vente potentielle" : "⏸️ Attente";
+
+                    summaryDiv.style.backgroundColor = color;
+                    summaryDiv.innerHTML = `
+                        ${emoji}<br>
+                        Dernier pattern détecté : [${top.sequence.join(", ")}] (${top.direction})<br>
+                        Bias estimé : <strong>${top.bias.toFixed(2)}</strong>
+                        — Période : ${top.start_timestamp.slice(11, 16)} → ${top.end_timestamp.slice(11, 16)}
+                    `;
+                } else {
+                    summaryDiv.style.backgroundColor = "#f5f5f5";
+                    summaryDiv.innerHTML = "⚠️ Aucun pattern détecté pour cette période.";
+                }
+                if (json.short_term_forecast) {
+                    const f = json.short_term_forecast;
+                    const forecastText = `
+                        <hr>
+                        📊 <strong>Prévision à court terme</strong><br>
+                        Direction probable : <strong>${f.direction === 'bullish' ? '📈 Hausse' : '📉 Baisse'}</strong><br>
+                        Confiance : ${(f.probability * 100).toFixed(1)}%<br>
+                        Intensité estimée (bias) : ${f.bias.toFixed(2)}
+                    `;
+                    summaryDiv.innerHTML += forecastText;
+                }
+
+                // ❗ recharge les bougies avec les nouvelles annotations
+                loadCandlestickData();
+
+            } catch (error) {
+                console.error("Failed to load pattern data:", error);
+            }
+        }
+
         window.onload = () => {
             loadCandlestickData();
+            loadPatterns();
         };
     </script>
+
 </body>
 </html>
