@@ -16,14 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Remove="Views\Prediction\TradePrediction.cshtml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="Views\Prediction\TradePrediction.cshtml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Jobs\SentimentAnalysisJob\.idea\inspectionProfiles\profiles_settings.xml" />
     <Content Include="Jobs\SentimentAnalysisJob\.idea\misc.xml" />
     <Content Include="Jobs\SentimentAnalysisJob\.idea\modules.xml" />
