@@ -1,115 +1,82 @@
-﻿using System.Net.Http;
+﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Quantia.Models;
+using Quantia.Models.ViewModels;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace Quantia.Controllers
 {
     [Route("Prediction")]
     public class PredictionController : Controller
     {
-        /* ------------------------------------------------------------------ */
-        /*  CONFIGURATION                                                     */
-        /* ------------------------------------------------------------------ */
-        private const string PYTHON_API_BASE = "http://localhost:8009"; // <- en dur
-        private readonly IHttpClientFactory _httpFactory;
+        private const string ML_API_BASE = "http://localhost:8009";
+        private readonly IHttpClientFactory _http;
 
-        public PredictionController(IHttpClientFactory httpFactory) => _httpFactory = httpFactory;
+        public PredictionController(IHttpClientFactory httpFactory) => _http = httpFactory;
 
-        private HttpClient Client => _httpFactory.CreateClient();
+        private HttpClient MlClient => _http.CreateClient();         // vers FastAPI
+        private HttpClient LocalClient => _http.CreateClient();        // interne ASP.NET
 
-        /* ------------------------------------------------------------------ */
-        /*  VUES                                                              */
-        /* ------------------------------------------------------------------ */
-
-        // GET /Prediction
+        /* --------------------- DASHBOARD -------------------------------- */
         [HttpGet("")]
-        public IActionResult Index()
+        public async Task<IActionResult> Index(string symbol = "BTCUSDT")
         {
-            return View();
+            // 1. Signaux ML
+            var signals = await MlClient.GetFromJsonAsync<List<TradeSignal>>
+                ($"{ML_API_BASE}/signals?symbol={symbol}&limit=10") ?? new();
+
+            // 2. Courbe d’équity réelle (portefeuille)
+            var eqJson = await LocalClient.GetStringAsync("/Portfolio/Equity?days=30");
+            var curve = JsonConvert.DeserializeObject<Dictionary<string, List<object>>>(eqJson)!;
+            var dates = curve["dates"].ConvertAll(d => DateTime.Parse(d.ToString()!));
+            var values = curve["equity"].ConvertAll(v => Convert.ToDecimal(v!));
+
+            // 3. Stats portefeuille
+            var stats = await LocalClient.GetFromJsonAsync<PortfolioStats>("/Portfolio/Stats")
+                        ?? new PortfolioStats();
+
+            var vm = new TradePredictionVM
+            {
+                EquityDates = dates,
+                EquityValues = values,
+                Signals = signals,
+                Balance = stats.Balance,
+                UnrealizedPnl = stats.UnrealizedPnL,
+                WinRate = stats.WinRate,
+                ProfitFactor = stats.ProfitFactor
+            };
+            return View("TradePrediction", vm);  // Razor dans Views/Prediction/
         }
 
-        // GET /Prediction/Pipeline
-        [HttpGet("Pipeline")]
-        public IActionResult Pipeline() => View();           // Views/Prediction/Pipeline.cshtml
+        /* --------------------- UTILITAIRES ML --------------------------- */
 
-
-        /* ------------------------------------------------------------------ */
-        /*  ENDPOINTS JSON – appelés par JavaScript                           */
-        /* ------------------------------------------------------------------ */
-
-        // POST /Prediction/GetPredictions
-        [HttpPost("GetPredictions")]
-        public async Task<IActionResult> GetPredictions([FromBody] PredictRequest dto)
-        {
-            try
-            {
-                // exemple : http://localhost:8009/predict-latest?symbol=BTCUSDT
-                var url = $"{dto.ApiUrl}?symbol={dto.Symbol}";
-                var json = await Client.GetStringAsync(url);
-                return Content(json, "application/json");
-            }
-            catch (Exception ex)
-            {
-                return Problem($"Error fetching predictions: {ex.Message}");
-            }
-        }
-
-        // POST /Prediction/RefreshModel
         [HttpPost("RefreshModel")]
-        public async Task<IActionResult> RefreshModel([FromBody] RefreshRequest dto)
+        public async Task<IActionResult> RefreshModel()
         {
-            try
-            {
-                var resp = await Client.PostAsync($"{PYTHON_API_BASE}/refresh-model", null);
-                var json = await resp.Content.ReadAsStringAsync();
-                return Content(json, "application/json");
-            }
-            catch (Exception ex)
-            {
-                return Problem($"Error refreshing model: {ex.Message}");
-            }
+            var resp = await MlClient.PostAsync($"{ML_API_BASE}/refresh-model", null);
+            return Content(await resp.Content.ReadAsStringAsync(), "application/json");
         }
 
-        // POST /Prediction/RunMlPipeline
         [HttpPost("RunMlPipeline")]
         public async Task<IActionResult> RunMlPipeline([FromBody] PipelineRequest dto)
         {
-            try
-            {
-                var resp = await Client.PostAsJsonAsync($"{PYTHON_API_BASE}/run_ml_pipeline", dto);
-                var json = await resp.Content.ReadAsStringAsync();
-                return Content(json, "application/json");
-            }
-            catch (Exception ex)
-            {
-                return Problem($"Pipeline error: {ex.Message}");
-            }
+            var resp = await MlClient.PostAsJsonAsync($"{ML_API_BASE}/run_ml_pipeline", dto);
+            return Content(await resp.Content.ReadAsStringAsync(), "application/json");
         }
 
-        // GET /Prediction/GetModelMetrics?model=xgb_direction
         [HttpGet("GetModelMetrics")]
-        public async Task<IActionResult> GetModelMetrics([FromQuery] string? model)
+        public async Task<IActionResult> GetMetrics(string? model)
         {
-            try
-            {
-                var url = $"{PYTHON_API_BASE}/get_model_metrics";
-                if (!string.IsNullOrWhiteSpace(model))
-                    url += $"?model={Uri.EscapeDataString(model)}";
-
-                var json = await Client.GetStringAsync(url);
-                return Content(json, "application/json");
-            }
-            catch (Exception ex)
-            {
-                return Problem($"Error metrics: {ex.Message}");
-            }
+            var url = $"{ML_API_BASE}/get_model_metrics";
+            if (!string.IsNullOrWhiteSpace(model)) url += $"?model={model}";
+            var json = await MlClient.GetStringAsync(url);
+            return Content(json, "application/json");
         }
 
-        /* ------------------------------------------------------------------ */
-        /*  DTOs                                                              */
-        /* ------------------------------------------------------------------ */
-        public record PredictRequest(string ApiUrl, string Symbol);
-        public record RefreshRequest(string ApiUrl);
         public record PipelineRequest(string Mode, string Symbol, int Days, string? ModelPath);
     }
 }
