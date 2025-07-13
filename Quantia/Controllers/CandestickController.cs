@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using System.Globalization;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;                 // pour UrlEncode
 
 namespace Quantia.Controllers
 {
@@ -9,55 +12,90 @@ namespace Quantia.Controllers
     public class CandlestickController : ControllerBase
     {
         private readonly HttpClient _httpClient;
+        private readonly string _backendBaseUrl;   // ex. "http://127.0.0.1:8000"
 
-        public CandlestickController(IHttpClientFactory httpClientFactory)
+        public CandlestickController(IHttpClientFactory httpClientFactory,
+                                     IConfiguration config)
         {
             _httpClient = httpClientFactory.CreateClient();
+            _backendBaseUrl = config["BackendBaseUrl"]?.TrimEnd('/')
+                                ?? "http://127.0.0.1:8000";
         }
 
+        /* ------------------------------------------------------------
+         *  Méthode utilitaire : proxy GET → JSON
+         * ----------------------------------------------------------*/
+        private async Task<IActionResult> ProxyAsync(string relativeUrl)
+        {
+            var resp = await _httpClient.GetAsync($"{_backendBaseUrl}{relativeUrl}");
+
+            if (!resp.IsSuccessStatusCode)
+                return StatusCode((int)resp.StatusCode,
+                                  "Failed to retrieve data from backend API.");
+
+            var json = await resp.Content.ReadAsStringAsync();
+            return Content(json, "application/json");
+        }
+
+        /* ------------------------------------------------------------
+         *  1) Bougies simples
+         * ----------------------------------------------------------*/
         [HttpGet("load")]
-        public async Task<IActionResult> LoadCandles([FromQuery] string symbol, [FromQuery] string start_date, [FromQuery] string end_date)
+        public Task<IActionResult> LoadCandles(
+            [FromQuery] string symbol,
+            [FromQuery] string start_date,
+            [FromQuery] string end_date)
         {
-            var apiUrl = $"http://127.0.0.1:8000/pattern/load-data?symbol={symbol}&start_date={start_date}&end_date={end_date}";
-            var response = await _httpClient.GetAsync(apiUrl);
+            var q = $"?symbol={HttpUtility.UrlEncode(symbol)}" +
+                    $"&start_date={HttpUtility.UrlEncode(start_date)}" +
+                    $"&end_date={HttpUtility.UrlEncode(end_date)}";
 
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode, "Failed to retrieve data from the backend API.");
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            return Content(json, "application/json");
+            return ProxyAsync($"/pattern/load-data{q}");
         }
 
+        /* ------------------------------------------------------------
+         *  2) Dernière prédiction ML / statistique
+         * ----------------------------------------------------------*/
         [HttpGet("predict")]
-        public async Task<IActionResult> GetPredictions([FromQuery] string symbol)
+        public Task<IActionResult> GetPredictions([FromQuery] string symbol)
         {
-            var url = $"http://127.0.0.1:8000/prediction/latest?symbol={symbol}";
-            var response = await _httpClient.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode, "Failed to retrieve prediction data from backend API.");
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            return Content(json, "application/json");
+            var q = $"?symbol={HttpUtility.UrlEncode(symbol)}";
+            return ProxyAsync($"/prediction/latest{q}");
         }
 
+        /* ------------------------------------------------------------
+         *  3) Patterns « data-driven » (ton endpoint existant)
+         * ----------------------------------------------------------*/
         [HttpGet("patterns")]
-        public async Task<IActionResult> LoadPatterns([FromQuery] string symbol, [FromQuery] string start_date, [FromQuery] string end_date)
+        public Task<IActionResult> LoadPatterns(
+            [FromQuery] string symbol,
+            [FromQuery] string start_date,
+            [FromQuery] string end_date)
         {
-            var apiUrl = $"http://127.0.0.1:8000/pattern/load-data-patterns?symbol={symbol}&start_date={start_date}&end_date={end_date}";
-            var response = await _httpClient.GetAsync(apiUrl);
+            var q = $"?symbol={HttpUtility.UrlEncode(symbol)}" +
+                    $"&start_date={HttpUtility.UrlEncode(start_date)}" +
+                    $"&end_date={HttpUtility.UrlEncode(end_date)}";
 
-            if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode, "Failed to retrieve pattern data from backend API.");
-            }
+            return ProxyAsync($"/pattern/load-data-patterns{q}");
+        }
 
-            var json = await response.Content.ReadAsStringAsync();
-            return Content(json, "application/json");
+        /* ------------------------------------------------------------
+         *  4) NEW – Patterns chandeliers « classiques »
+         * ----------------------------------------------------------*/
+        [HttpGet("patterns/classic")]
+        public Task<IActionResult> LoadClassicPatterns(
+            [FromQuery] string symbol,
+            [FromQuery] string start_date,
+            [FromQuery] string end_date,
+            [FromQuery] double atr_min_pct = 0.05)   // filtre volatilité
+        {
+            var q = $"?symbol={HttpUtility.UrlEncode(symbol)}" +
+                    $"&start_date={HttpUtility.UrlEncode(start_date)}" +
+                    $"&end_date={HttpUtility.UrlEncode(end_date)}" +
+                    $"&atr_min_pct={atr_min_pct.ToString(CultureInfo.InvariantCulture)}";
+
+            // route définie côté FastAPI :  /api/candlestick/patterns/classic
+            return ProxyAsync($"/pattern/load-data-patterns-classic{q}");
         }
     }
 }
