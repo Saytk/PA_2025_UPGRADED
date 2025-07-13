@@ -106,10 +106,7 @@
                     xaxis: {
                         type: 'datetime',
                         labels: {
-                            formatter: function (val, timestamp) {
-                                const d = new Date(timestamp);
-                                return d.toISOString().slice(11, 16); // Display in HH:mm UTC
-                            }
+                            datetimeUTC: false
                         }
                     },
                     yaxis: {
