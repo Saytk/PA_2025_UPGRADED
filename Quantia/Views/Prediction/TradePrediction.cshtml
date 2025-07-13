@@ -38,31 +38,31 @@
 <!-- Signals -->
 <div class="bg-white rounded shadow p-4">
     <h2 class="text-lg font-semibold mb-4">Signaux actifs</h2>
-    <table class="min-w-full text-sm">
-        <thead>
-            <tr class="border-b">
-                <th class="py-2">Heure</th>
-                <th class="py-2">Side</th>
-                <th class="py-2">Proba</th>
-                <th class="py-2">Entry</th>
-                <th class="py-2">SL</th>
-                <th class="py-2">TP</th>
-                <th class="py-2">R:R</th>
-                <th class="py-2"></th>
-            </tr>
-        </thead>
-        <tbody>
+   <table class="min-w-full table-fixed text-sm">
+    <thead>
+        <tr class="border-b bg-gray-50">
+            <th class="py-2 px-4 w-16 text-center">Heure</th>
+            <th class="py-2 px-4 w-20 text-center">Side</th>
+            <th class="py-2 px-4 w-20 text-center">Proba</th>
+            <th class="py-2 px-4 w-20 text-center">Entry</th>
+            <th class="py-2 px-4 w-20 text-center">SL</th>
+            <th class="py-2 px-4 w-20 text-center">TP</th>
+            <th class="py-2 px-4 w-20 text-center">R:R</th>
+            <th class="py-2 px-4 w-24 text-center"></th>
+        </tr>
+    </thead>
+    <tbody>
             @foreach (var s in Model.Signals)
             {
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="py-2">@s.Timestamp.ToString("HH:mm")</td>
-                    <td class="py-2 font-medium @(s.Side == "BUY" ? "text-green-600" : "text-red-600")">@s.Side</td>
-                    <td class="py-2">@($"{s.Probability:P1}")</td>
-                    <td class="py-2">@s.Entry</td>
-                    <td class="py-2">@s.StopLoss</td>
-                    <td class="py-2">@s.TakeProfit</td>
-                    <td class="py-2">@s.RiskReward</td>
-                    <td class="py-2">
+                <tr class="border-b hover:bg-gray-50 text-center text-nowrap">
+                    <td class="py-2 px-4">@s.Timestamp.ToString("HH:mm")</td>
+                    <td class="py-2 px-4 font-medium @(s.Side == "BUY" ? "text-green-600" : "text-red-600")">@s.Side</td>
+                    <td class="py-2 px-4">@($"{s.Probability:P1}")</td>
+                    <td class="py-2 px-4">@s.Entry</td>
+                    <td class="py-2 px-4">@s.StopLoss</td>
+                    <td class="py-2 px-4">@s.TakeProfit</td>
+                    <td class="py-2 px-4">@s.RiskReward</td>
+                    <td class="py-2 px-4">
                         <button class="px-3 py-1 text-xs text-white bg-indigo-600 rounded"
                                 onclick="execOrder('@s.Symbol', @s.Entry, @s.StopLoss, @s.TakeProfit)">
                             Passer
@@ -70,8 +70,9 @@
                     </td>
                 </tr>
             }
-        </tbody>
-    </table>
+    </tbody>
+</table>
+
 </div>
 
 <!-- Chart.js -->

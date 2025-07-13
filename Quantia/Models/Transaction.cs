@@ -35,7 +35,10 @@ namespace Quantia.Models
         [ForeignKey("UserId")]
         public UserModel? User { get; set; }
 
+        [Column("side")]
         public string Side { get; set; } = "Buy";
+
+        [Column("trade_id")]
         public Guid TradeId { get; set; }
     }
 }

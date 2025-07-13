@@ -2,10 +2,12 @@
 using Newtonsoft.Json;
 using Quantia.Models;
 using Quantia.Models.ViewModels;
+using Quantia.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Quantia.Controllers
@@ -13,31 +15,48 @@ namespace Quantia.Controllers
     [Route("Prediction")]
     public class PredictionController : Controller
     {
-        private const string ML_API_BASE = "http://localhost:8009";
+        private const string ML_API_BASE = "http://localhost:8000";
+
         private readonly IHttpClientFactory _http;
+        private readonly PortfolioEquityService _equityService;
+        private readonly IHttpContextAccessor _httpContext;
 
-        public PredictionController(IHttpClientFactory httpFactory) => _http = httpFactory;
+        public PredictionController(
+            IHttpClientFactory httpFactory,
+            PortfolioEquityService equityService,
+            IHttpContextAccessor httpContextAccessor)
+        {
+            _http = httpFactory;
+            _equityService = equityService;
+            _httpContext = httpContextAccessor;
+        }
 
-        private HttpClient MlClient => _http.CreateClient();         // vers FastAPI
-        private HttpClient LocalClient => _http.CreateClient();        // interne ASP.NET
+        private HttpClient MlClient => _http.CreateClient();
 
-        /* --------------------- DASHBOARD -------------------------------- */
         [HttpGet("")]
         public async Task<IActionResult> Index(string symbol = "BTCUSDT")
         {
-            // 1. Signaux ML
-            var signals = await MlClient.GetFromJsonAsync<List<TradeSignal>>
-                ($"{ML_API_BASE}/signals?symbol={symbol}&limit=10") ?? new();
+            var rawPrediction = await MlClient.GetFromJsonAsync<PredictionSignal>(
+                $"{ML_API_BASE}/prediction/latest?symbol={symbol}") ?? new();
 
-            // 2. Courbe d’équity réelle (portefeuille)
-            var eqJson = await LocalClient.GetStringAsync("/Portfolio/Equity?days=30");
-            var curve = JsonConvert.DeserializeObject<Dictionary<string, List<object>>>(eqJson)!;
-            var dates = curve["dates"].ConvertAll(d => DateTime.Parse(d.ToString()!));
-            var values = curve["equity"].ConvertAll(v => Convert.ToDecimal(v!));
+            var signals = new List<TradeSignal>
+            {
+                new TradeSignal
+                {
+                    Timestamp = rawPrediction.timestamp,
+                    Symbol = rawPrediction.symbol,
+                    Probability = (Decimal)rawPrediction.prob_up,
+                    Side = rawPrediction.signal,
+                    Entry = 0,
+                    StopLoss = 0,
+                    TakeProfit = 0
+                }
+            };
 
-            // 3. Stats portefeuille
-            var stats = await LocalClient.GetFromJsonAsync<PortfolioStats>("/Portfolio/Stats")
-                        ?? new PortfolioStats();
+            int userId = int.Parse(_httpContext.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+            var (dates, values) = await _equityService.GetEquityAsync(userId, 30);
+            var stats = await _equityService.GetStatsAsync(userId);
 
             var vm = new TradePredictionVM
             {
@@ -49,10 +68,9 @@ namespace Quantia.Controllers
                 WinRate = stats.WinRate,
                 ProfitFactor = stats.ProfitFactor
             };
-            return View("TradePrediction", vm);  // Razor dans Views/Prediction/
-        }
 
-        /* --------------------- UTILITAIRES ML --------------------------- */
+            return View("TradePrediction", vm);
+        }
 
         [HttpPost("RefreshModel")]
         public async Task<IActionResult> RefreshModel()
