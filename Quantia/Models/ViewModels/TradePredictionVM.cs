@@ -4,24 +4,26 @@ using Quantia.Models;
 
 namespace Quantia.Models.ViewModels
 {
-    /// <summary>ViewModel combinant equity, signaux et stats</summary>
+    /// <summary>Vue combinant equity, signaux, stats et suggestion détaillée</summary>
     public class TradePredictionVM
     {
-        /* ─────────── Courbe d’équité ─────────── */
+        /* ─────── Courbe d’équité ─────── */
         public List<DateTime> EquityDates { get; set; } = new();
         public List<decimal> EquityValues { get; set; } = new();
 
-        /* ─────────── Signaux actifs ──────────── */
+        /* ─────── Signaux actifs ─────── */
         public List<TradeSignal> Signals { get; set; } = new();
 
-        /* ─────────── Stats individuelles ─────── */
+        /* ─────── Dernière suggestion ─────── */
+        public TradeSuggestion? Suggestion { get; set; }
+
+        /* ─────── Stats individuelles ─────── */
         public decimal Balance { get; set; }
         public decimal UnrealizedPnl { get; set; }
         public decimal WinRate { get; set; }
         public decimal ProfitFactor { get; set; }
 
-        /* ─────────── Stats groupées (facultatif) ──────
-           Certaines vues utilisent Model.Stats …  */
+        /* ─────── Agrégation facultative ─────── */
         public PortfolioStats Stats
         {
             get => new PortfolioStats

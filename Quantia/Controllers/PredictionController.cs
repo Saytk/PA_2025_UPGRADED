@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using Quantia.Models;
 using Quantia.Models.ViewModels;
 using Quantia.Services;
-using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -33,32 +31,61 @@ namespace Quantia.Controllers
 
         private HttpClient MlClient => _http.CreateClient();
 
+        /* ------------------------------------------------------------------ */
+        /*  PAGE PRINCIPALE                                                   */
+        /* ------------------------------------------------------------------ */
         [HttpGet("")]
         public async Task<IActionResult> Index(string symbol = "BTCUSDT")
         {
-            var rawPrediction = await MlClient.GetFromJsonAsync<PredictionSignal>(
-                $"{ML_API_BASE}/prediction/latest?symbol={symbol}") ?? new();
+            var vm = await BuildViewModel(symbol);
+            return View("TradePrediction", vm);
+        }
 
-            var signals = new List<TradeSignal>
+        /* ------------------------------------------------------------------ */
+        /*  ENDPOINT JSON (Polling)                                           */
+        /* ------------------------------------------------------------------ */
+        [HttpGet("json")]
+        public async Task<IActionResult> GetJson(string symbol = "BTCUSDT")
+            => Json(await BuildViewModel(symbol));
+
+        /* ------------------------------------------------------------------ */
+        /*  CONSTRUCTION DU VIEWMODEL                                         */
+        /* ------------------------------------------------------------------ */
+        private async Task<TradePredictionVM> BuildViewModel(string symbol)
+        {
+            /* ---- 1. Appel à l’API ML (fortement typé) -------------------- */
+            var raw = await MlClient.GetFromJsonAsync<PredictionResponse>(
+                          $"{ML_API_BASE}/prediction/latest?symbol={symbol}");
+
+            /* ---- 2. Mapping vers TradeSignal ----------------------------- */
+            var signals = new List<TradeSignal>();
+            if (raw is not null)
             {
-                new TradeSignal
+                signals.Add(new TradeSignal
                 {
-                    Timestamp = rawPrediction.timestamp,
-                    Symbol = rawPrediction.symbol,
-                    Probability = (Decimal)rawPrediction.prob_up,
-                    Side = rawPrediction.signal,
-                    Entry = 0,
-                    StopLoss = 0,
-                    TakeProfit = 0
-                }
-            };
+                    Timestamp = raw.timestamp,
+                    Symbol = raw.symbol,
+                    Probability = (decimal)raw.prob_up,
+                    Side = raw.signal == "LONG" ? "BUY" : "SELL",
+                    Entry = raw.entry,
+                    StopLoss = raw.stop_loss,
+                    TakeProfit = raw.take_profit,
+                    Confidence = (decimal)raw.confidence,
+                    PositionSize = (decimal)raw.confidence * 100,
+                    Note = raw.note,
+                    Strategy = "auto_sl_tp"
+                });
+            }
 
-            int userId = int.Parse(_httpContext.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            /* ---- 3. Équity & stats utilisateur --------------------------- */
+            int userId = int.Parse(_httpContext.HttpContext!
+                                   .User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
             var (dates, values) = await _equityService.GetEquityAsync(userId, 30);
             var stats = await _equityService.GetStatsAsync(userId);
 
-            var vm = new TradePredictionVM
+            /* ---- 4. ViewModel final -------------------------------------- */
+            return new TradePredictionVM
             {
                 EquityDates = dates,
                 EquityValues = values,
@@ -68,10 +95,11 @@ namespace Quantia.Controllers
                 WinRate = stats.WinRate,
                 ProfitFactor = stats.ProfitFactor
             };
-
-            return View("TradePrediction", vm);
         }
 
+        /* ------------------------------------------------------------------ */
+        /*  ACTIONS EXISTANTES                                                */
+        /* ------------------------------------------------------------------ */
         [HttpPost("RefreshModel")]
         public async Task<IActionResult> RefreshModel()
         {
@@ -95,6 +123,7 @@ namespace Quantia.Controllers
             return Content(json, "application/json");
         }
 
+        /* ------------------------------------------------------------------ */
         public record PipelineRequest(string Mode, string Symbol, int Days, string? ModelPath);
     }
 }

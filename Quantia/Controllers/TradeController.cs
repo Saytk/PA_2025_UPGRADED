@@ -1,5 +1,4 @@
-﻿// Controllers/TradeController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Quantia.Models;
@@ -8,48 +7,59 @@ using System.Security.Claims;
 namespace Quantia.Controllers
 {
     [Authorize]
+    [Route("Trade")]
     public class TradeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ICryptoPriceService _priceSvc;
 
-        public TradeController(AppDbContext context) => _context = context;
+        public TradeController(AppDbContext ctx, ICryptoPriceService priceSvc)
+        {
+            _context = ctx;
+            _priceSvc = priceSvc;
+        }
 
-        // Utilitaire pour récupérer l’ID utilisateur courant
         private int CurrentUserId() =>
             int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // ──────────────────────────────────────────────
-        // GET /Trade            → liste de tous les trades
-        // ──────────────────────────────────────────────
+        /*──────────────────────────────────────────────────────────*
+         * LISTE & PnL LATENT
+         *──────────────────────────────────────────────────────────*/
+        [HttpGet("")]
         public async Task<IActionResult> Index()
         {
-            var userId = CurrentUserId();
-            var trades = await _context.Trades        // DbSet<TradeModel>
-                                       .Where(t => t.UserId == userId)
+            var trades = await _context.Trades      // DbSet<TradeModel>
+                                       .Where(t => t.UserId == CurrentUserId())
                                        .OrderByDescending(t => t.BuyDate)
                                        .ToListAsync();
 
-            return View(trades);        // Vue Trade Index créée précédemment
+            // Calcule le PnL latent pour les positions ouvertes
+            foreach (var t in trades.Where(t => t.SellDate is null))
+            {
+                var last = await _priceSvc.GetLastPriceAsync(t.CryptoSymbol);
+                if (last is null) continue;   // feed indispo
+
+                t.UnrealizedPnl = (last.Value - t.BuyPrice) * t.Quantity;
+            }
+
+            return View(trades);   // /Views/Trade/Index.cshtml
         }
 
-        // ──────────────────────────────────────────────
-        // GET /Trade/Create      → formulaire nouveau trade
-        // ──────────────────────────────────────────────
-        [HttpGet]
+        /*──────────────────────────────────────────────────────────*
+         * NOUVELLE POSITION
+         *──────────────────────────────────────────────────────────*/
+        [HttpGet("Create")]
         public IActionResult Create() =>
             View(new TradeModel { BuyDate = DateTime.UtcNow });
 
-        // ──────────────────────────────────────────────
-        // POST /Trade/Create     → enregistre le trade
-        // ──────────────────────────────────────────────
-        [HttpPost]
+        [HttpPost("Create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TradeModel model)
         {
-
-            if (!ModelState.IsValid) return View(model); // affiche les erreurs
+            if (!ModelState.IsValid) return View(model);
 
             model.UserId = CurrentUserId();
+            model.Status = "Open";
             model.SellDate = null;
             model.SellPrice = null;
             model.BuyDate = DateTime.SpecifyKind(model.BuyDate, DateTimeKind.Utc);
@@ -59,95 +69,51 @@ namespace Quantia.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        // ──────────────────────────────────────────────
-        // GET /Trade/Edit/5      → éditer/fermer un trade
-        // ──────────────────────────────────────────────
-        //[HttpGet]
-        //public async Task<IActionResult> Edit(int id)
-        //{
-        //    var userId = CurrentUserId();
-        //    var trade = await _context.Trades
-        //                               .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-
-        //    return trade == null ? NotFound() : View(trade);
-        //}
-
-        //// ──────────────────────────────────────────────
-        //// POST /Trade/Edit/5
-        //// ──────────────────────────────────────────────
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(int id, TradeModel model)
-        //{
-        //    var userId = CurrentUserId();
-        //    var trade = await _context.Trades
-        //                               .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-        //    if (trade == null) return NotFound();
-        //    if (!ModelState.IsValid) return View(model);
-
-        //    // Mise à jour des champs
-        //    trade.CryptoSymbol = model.CryptoSymbol;
-        //    trade.Quantity = model.Quantity;
-        //    trade.BuyPrice = model.BuyPrice;
-        //    trade.BuyDate = model.BuyDate;
-        //    trade.SellPrice = model.SellPrice;
-        //    trade.SellDate = model.SellDate;
-
-        //    await _context.SaveChangesAsync();
-        //    return RedirectToAction(nameof(Index));
-        //}
-
-        // ──────────────────────────────────────────────
-        // POST /Trade/Delete/5
-        // ──────────────────────────────────────────────
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        /*──────────────────────────────────────────────────────────*
+         * FERMETURE D'UNE POSITION
+         *──────────────────────────────────────────────────────────*/
+        [HttpGet("Close/{id:int}")]
+        public async Task<IActionResult> Close(int id)
         {
-            var userId = CurrentUserId();
             var trade = await _context.Trades
-                                       .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-            if (trade == null) return NotFound();
-
-            _context.Trades.Remove(trade);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        // GET /Trade/Edit/5
-        [HttpGet]
-        public async Task<IActionResult> Edit(int id)
-        {
-            var userId = CurrentUserId();
-            var trade = await _context.Trades
-                                       .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-            if (trade == null) return NotFound();
-            if (trade.Status == "Closed")   // déjà fermé : pas d’édition
-                return RedirectToAction(nameof(Index));
-
+                                       .FirstOrDefaultAsync(t => t.Id == id
+                                                              && t.UserId == CurrentUserId());
+            if (trade is null || trade.SellDate is not null) return NotFound();
             return View(trade);
         }
 
-        // POST /Trade/Edit/5  → fermeture
-        [HttpPost]
+        [HttpPost("Close/{id:int}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, TradeModel model)
+        public async Task<IActionResult> Close(int id, decimal exitPrice)
         {
-            var userId = CurrentUserId();
             var trade = await _context.Trades
-                                       .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
-            if (trade == null) return NotFound();
-            if (!ModelState.IsValid) return View(model);
+                                       .FirstOrDefaultAsync(t => t.Id == id
+                                                              && t.UserId == CurrentUserId());
+            if (trade is null || trade.SellDate is not null) return NotFound();
 
-            // On ne modifie QUE les champs de sortie
-            trade.SellPrice = model.SellPrice;
-            trade.SellDate = DateTime.SpecifyKind(model.SellDate!.Value, DateTimeKind.Utc);
+            trade.SellPrice = exitPrice;
+            trade.SellDate = DateTime.UtcNow;
             trade.Status = "Closed";
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
+        /*──────────────────────────────────────────────────────────*
+         * SUPPRESSION (soft : à toi de voir)
+         *──────────────────────────────────────────────────────────*/
+        [HttpPost("Delete/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var trade = await _context.Trades
+                                       .FirstOrDefaultAsync(t => t.Id == id
+                                                              && t.UserId == CurrentUserId());
+            if (trade is null) return NotFound();
+
+            _context.Trades.Remove(trade);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

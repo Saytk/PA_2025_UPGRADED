@@ -4,10 +4,6 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ──────────────────────────────
-// DATABASE & SERVICES
-// ──────────────────────────────
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
@@ -17,6 +13,9 @@ builder.Services.AddControllersWithViews();
 // Services personnalisés
 builder.Services.AddSingleton<SentimentFileService>();
 builder.Services.AddHttpClient<PortfolioPriceService>();
+builder.Services.AddScoped<PortfolioEquityService>();      // déjà présent
+builder.Services.AddHttpClient<TradeSuggestionService>();  // nouveau
+builder.Services.AddScoped<TradeSuggestionService>();      // pour DI
 
 // Sessions & cookies
 builder.Services.AddSession();
@@ -29,7 +28,6 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 // ──────────────────────────────
 // AUTHENTIFICATION COOKIE
 // ──────────────────────────────
-
 builder.Services.AddAuthentication("QuantiaAuth")
     .AddCookie("QuantiaAuth", options =>
     {
@@ -40,7 +38,6 @@ builder.Services.AddAuthentication("QuantiaAuth")
         options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
-// Anti-CSRF
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -48,30 +45,22 @@ builder.Services.AddAntiforgery(options =>
 });
 
 // ──────────────────────────────
-// HTTP CLIENTS
+// HTTP CLIENTS Nommés
 // ──────────────────────────────
-
-// Client générique (par défaut)
-builder.Services.AddHttpClient();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<PortfolioEquityService>();
-
-// Client ML vers API Python
 builder.Services.AddHttpClient("MLApi", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:8000");  // Port de FastAPI
+    client.BaseAddress = new Uri("http://localhost:8000");
 });
-
-// Client local ASP.NET (self-call vers /Portfolio/Equity, etc.)
 builder.Services.AddHttpClient("LocalAPI", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:7248");  // Port ASP.NET
+    client.BaseAddress = new Uri("http://localhost:7248");
 });
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICryptoPriceService, CryptoPriceService>();
 
 // ──────────────────────────────
 // BUILD & PIPELINE
 // ──────────────────────────────
-
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

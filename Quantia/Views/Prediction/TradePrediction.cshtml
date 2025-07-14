@@ -3,6 +3,9 @@
 @{
     ViewBag.Section = "Trade Prediction";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // ----- Récupère la valeur de risque dans l’URL (défaut = 1) -----
+    var riskParam = Context.Request.Query["risk"].FirstOrDefault() ?? "1";
 }
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -29,6 +32,18 @@
     </div>
 </div>
 
+<!-- Slider risque -->
+<div class="mb-6 flex items-center gap-4">
+    <label class="text-sm">Risque (xATR)</label>
+    <input id="riskRange" type="range" min="0.5" max="3" step="0.5"
+           value="@riskParam" class="w-64">
+    <span id="riskVal" class="font-semibold">@riskParam</span> x
+    <button id="reloadBtn"
+            class="ml-4 px-3 py-1 text-xs text-white bg-blue-600 rounded">
+        Rafraîchir
+    </button>
+</div>
+
 <!-- Equity curve -->
 <div class="bg-white rounded shadow p-4 mb-8">
     <h2 class="text-lg font-semibold mb-4">Équity 30 j</h2>
@@ -38,50 +53,64 @@
 <!-- Signals -->
 <div class="bg-white rounded shadow p-4">
     <h2 class="text-lg font-semibold mb-4">Signaux actifs</h2>
-   <table class="min-w-full table-fixed text-sm">
-    <thead>
-        <tr class="border-b bg-gray-50">
-            <th class="py-2 px-4 w-16 text-center">Heure</th>
-            <th class="py-2 px-4 w-20 text-center">Side</th>
-            <th class="py-2 px-4 w-20 text-center">Proba</th>
-            <th class="py-2 px-4 w-20 text-center">Entry</th>
-            <th class="py-2 px-4 w-20 text-center">SL</th>
-            <th class="py-2 px-4 w-20 text-center">TP</th>
-            <th class="py-2 px-4 w-20 text-center">R:R</th>
-            <th class="py-2 px-4 w-24 text-center"></th>
-        </tr>
-    </thead>
-    <tbody>
-            @foreach (var s in Model.Signals)
-            {
-                <tr class="border-b hover:bg-gray-50 text-center text-nowrap">
-                    <td class="py-2 px-4">@s.Timestamp.ToString("HH:mm")</td>
-                    <td class="py-2 px-4 font-medium @(s.Side == "BUY" ? "text-green-600" : "text-red-600")">@s.Side</td>
-                    <td class="py-2 px-4">@($"{s.Probability:P1}")</td>
-                    <td class="py-2 px-4">@s.Entry</td>
-                    <td class="py-2 px-4">@s.StopLoss</td>
-                    <td class="py-2 px-4">@s.TakeProfit</td>
-                    <td class="py-2 px-4">@s.RiskReward</td>
-                    <td class="py-2 px-4">
-                        <button class="px-3 py-1 text-xs text-white bg-indigo-600 rounded"
-                                onclick="execOrder('@s.Symbol', @s.Entry, @s.StopLoss, @s.TakeProfit)">
-                            Passer
-                        </button>
-                    </td>
-                </tr>
-            }
-    </tbody>
-</table>
 
+    @if (!Model.Signals.Any())
+    {
+        <p class="text-gray-500 italic">Aucun trade proposé (signal FLAT ou erreur API).</p>
+    }
+    else
+    {
+        <table class="min-w-full table-fixed text-sm">
+            <thead>
+                <tr class="border-b bg-gray-50">
+                    <th class="py-2 px-4 w-16  text-center">Heure</th>
+                    <th class="py-2 px-4 w-20  text-center">Side</th>
+                    <th class="py-2 px-4 w-20  text-center">Proba</th>
+                    <th class="py-2 px-4 w-24  text-center">Entry</th>
+                    <th class="py-2 px-4 w-24  text-center">SL</th>
+                    <th class="py-2 px-4 w-24  text-center">TP</th>
+                    <th class="py-2 px-4 w-16  text-center">R:R</th>
+                    <th class="py-2 px-4 w-24  text-center">Pos</th>
+                    <th class="py-2 px-4 w-24  text-center">Conf.</th>
+                    <th class="py-2 px-4 w-24  text-center"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in Model.Signals)
+                {
+                    <tr class="border-b hover:bg-gray-50 text-center text-nowrap">
+                        <td class="py-2 px-4">@s.Timestamp.ToString("HH:mm")</td>
+                        <td class="py-2 px-4 font-medium @(s.Side == "BUY" ? "text-green-600" : "text-red-600")">
+                            @s.Side
+                        </td>
+                        <td class="py-2 px-4">@($"{s.Probability:P1}")</td>
+                        <td class="py-2 px-4">@s.Entry</td>
+                        <td class="py-2 px-4">@s.StopLoss</td>
+                        <td class="py-2 px-4">@s.TakeProfit</td>
+                        <td class="py-2 px-4">@s.RiskReward</td>
+                        <td class="py-2 px-4">@($"{s.PositionSize:F4}")</td>
+                        <td class="py-2 px-4">@($"{s.Confidence:P1}")</td>
+                        <td class="py-2 px-4">
+                            <button class="px-3 py-1 text-xs text-white bg-indigo-600 rounded"
+                                    onclick="execOrder('@s.Symbol', @s.Entry, @s.StopLoss, @s.TakeProfit, @s.PositionSize)">
+                                Passer
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 <!-- Chart.js -->
 <script>
+    /* ---------- Courbe equity ---------- */
     new Chart(document.getElementById('equityChart'), {
         type: 'line',
         data: {
             labels: @Html.Raw(JsonConvert.SerializeObject(
-         Model.EquityDates.ConvertAll(d => d.ToString("dd MMM"))
+                 Model.EquityDates.ConvertAll(d => d.ToString("dd MMM"))
             )),
             datasets: [{
                 data: @Html.Raw(JsonConvert.SerializeObject(Model.EquityValues)),
@@ -89,18 +118,22 @@
                 tension: .3
             }]
         },
-        options: {
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
+        options: { plugins: { legend: { display: false } } }
     });
 
-    // POST JSON vers /Portfolio/Add
-    function execOrder(sym, entry, sl, tp) {
-        const qty = prompt("Quantity ?", "0.001");
+    /* ---------- Slider risque ---------- */
+    const rrange = document.getElementById('riskRange');
+    const rval   = document.getElementById('riskVal');
+    rrange.addEventListener('input', () => rval.textContent = rrange.value);
+
+    document.getElementById('reloadBtn').addEventListener('click', () => {
+        const r = rrange.value;
+        window.location = `/Prediction?symbol=BTCUSDT&risk=${r}`;
+    });
+
+    /* ---------- Passage d’ordre ---------- */
+    function execOrder(sym, entry, sl, tp, defaultQty) {
+        const qty = prompt("Quantity ?", Number(defaultQty).toFixed(4));
         if (!qty) return;
 
         fetch('/Portfolio/Add', {
