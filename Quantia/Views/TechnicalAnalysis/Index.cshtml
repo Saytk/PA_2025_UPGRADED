@@ -32,34 +32,330 @@
     <div class="container-fluid py-4">
         <h1 class="dashboard-heading mb-4">Crypto Technical Analysis</h1>
         <form id="paramsForm" class="row gy-2 gx-3 align-items-center" onsubmit="event.preventDefault(); loadAll();">
-            <div class="col-md-2"><label class="form-label mb-0">Symbol</label><select class="form-select" id="symbolSelect"><option value="BTCUSDT">Bitcoin (BTC)</option><option value="ETHUSDT">Ethereum (ETH)</option></select></div>
-            <div class="col-md-2"><label class="form-label mb-0">Start</label><input type="datetime-local" class="form-control" id="startDate" /></div>
-            <div class="col-md-2"><label class="form-label mb-0">End</label><input type="datetime-local" class="form-control" id="endDate" /></div>
-            <div class="col-md-2"><label class="form-label mb-0">Pattern source</label><select class="form-select" id="patternMode"><option value="ml">ML (Sequences)</option><option value="classic">Classic (Candlestick)</option></select></div>
+            <div class="col-md-2"><label class="form-label mb-0">Symbol</label><select id="symbolSelect" class="form-select"><option value="BTCUSDT">Bitcoin</option><option value="ETHUSDT">Ethereum</option></select></div>
+            <div class="col-md-2"><label class="form-label mb-0">Start</label><input type="datetime-local" id="startDate" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label mb-0">End</label><input type="datetime-local" id="endDate" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label mb-0">Pattern source</label><select id="patternMode" class="form-select"><option value="ml">ML (Sequences)</option><option value="classic">Classic (Candlestick)</option></select></div>
             <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Refresh</button></div>
         </form>
-        <div id="pattern-summary" class="alert mt-4 advice-neutral" role="alert">🔍 <em>Analysis pending…</em></div>
+
+        <div id="pattern-summary" class="alert mt-4 advice-neutral">🔍 <em>Analysis pending…</em></div>
         <div class="row g-4">
-            <div class="col-xl-8"><div class="card shadow-sm"><div class="card-header">Candlestick Chart</div><div class="card-body p-0"><div id="candlestick-chart" style="height:500px;"></div></div></div></div>
-            <div class="col-xl-4"><div class="card shadow-sm h-100"><div class="card-header d-flex justify-content-between align-items-center"><span>Decision Assistant</span><span id="loaderAdvice" class="spinner-border spinner-border-sm text-secondary d-none"></span></div><div class="card-body" id="decision-assistant"><p class="text-muted mb-0">Select a time window to get trading signals…</p></div></div></div>
+            <div class="col-xl-8"><div class="card shadow-sm"><div class="card-header">Candlestick Chart</div><div class="card-body p-0"><div id="candlestick-chart" style="height:500px"></div></div></div></div>
+            <div class="col-xl-4"><div class="card shadow-sm h-100"><div class="card-header d-flex justify-content-between align-items-center"><span>Decision Assistant</span><span id="loaderAdvice" class="spinner-border spinner-border-sm text-secondary d-none"></span></div><div id="decision-assistant" class="card-body"><p class="text-muted mb-0">Select a time window…</p></div></div></div>
         </div>
-        <div class="card shadow-sm mt-4"><div class="card-header">Detected Patterns</div><div class="table-responsive"><table class="table table-sm table-striped mb-0" id="patterns-table"><thead class="table-light"><tr id="patterns-header"></tr></thead><tbody id="patterns-body"></tbody></table></div></div>
-        <footer class="small text-muted mt-4">The information provided does not constitute financial advice. Always do your own research.</footer>
+
+        <div class="card shadow-sm mt-4"><div class="card-header">Detected Patterns</div><div class="table-responsive"><table id="patterns-table" class="table table-sm table-striped mb-0"><thead class="table-light"><tr id="patterns-header"></tr></thead><tbody id="patterns-body"></tbody></table></div></div>
+        <footer class="small text-muted mt-4">Information provided is not financial advice.</footer>
     </div>
+
     <script>
-        const qs=s=>document.querySelector(s);const show=s=>qs(s).classList.remove('d-none');const hide=s=>qs(s).classList.add('d-none');let chart,annotations=[];
-        function parseUTC(i){return new Date(/Z|[+-]\d{2}:?\d{2}$/.test(i)?i:i+'Z');}
-        function localInputValue(d){const p=v=>String(v).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;}
-        async function loadCandlestickData(){const s=qs('#symbolSelect').value,st=qs('#startDate').value,ed=qs('#endDate').value;const url=`/api/candlestick/load?symbol=${s}&start_date=${st}&end_date=${ed}`;try{const r=await fetch(url);const j=await r.json();const data=j.data.map(d=>({x:parseUTC(d.timestamp_utc).getTime(),y:[d.open,d.high,d.low,d.close]}));const opt={chart:{type:'candlestick',height:500,animations:{enabled:false}},xaxis:{type:'datetime',labels:{datetimeUTC:false}},yaxis:{tooltip:{enabled:true}},series:[{data}],annotations:{xaxis:annotations}};if(!chart){chart=new ApexCharts(qs('#candlestick-chart'),opt);chart.render();}else{chart.updateSeries([{data}]);chart.updateOptions({annotations:{xaxis:annotations}});} }catch(e){console.error(e);alert('Error loading candlestick data');}}
-        function interpretPattern(p){if(p.pattern){return `${p.summary} — ${p.detail}`;}const a=Math.abs(p.bias);if(p.direction==='bullish')return a>0.25?'Strong bullish signal: potential reversal or sharp continuation.':'Moderate bullish signal: upside likely.';if(p.direction==='bearish')return a>0.25?'Strong bearish signal: risk of pullback.':'Moderate bearish signal: caution.';return 'Neutral pattern.';}
-        function actionAdvice(dir){if(dir==='bullish')return 'Consider opening / adding to a long position, but confirm with trend & volume.';if(dir==='bearish')return 'Consider taking profit or shorting; tighten stops on longs.';return 'Wait for confirmation before acting.';}
-        function buildHeaders(m){const h=qs('#patterns-header');h.innerHTML='';h.innerHTML=m==='classic'?'<th>Time</th><th>Pattern</th><th>Dir.</th><th>Summary</th>':'<th>Start</th><th>End</th><th>Sequence</th><th>Dir.</th><th>Bias</th><th>Bullish</th><th>Bearish</th><th>Neutral</th>';}
-        async function loadPatterns(){const mode=qs('#patternMode').value;const s=qs('#symbolSelect').value,st=qs('#startDate').value,ed=qs('#endDate').value;const endpoint=mode==='classic'?`/api/candlestick/patterns/classic?symbol=${s}&start_date=${st}&end_date=${ed}`:`/api/candlestick/patterns?symbol=${s}&start_date=${st}&end_date=${ed}`;buildHeaders(mode);try{show('#loaderAdvice');const r=await fetch(endpoint);const j=await r.json();const rows=j.patterns_detected||[];const tbody=qs('#patterns-body');tbody.innerHTML='';annotations=[];if(mode==='classic'){rows.forEach(p=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${p.timestamp.slice(11,16)}</td><td>${p.pattern}</td><td>${p.direction}</td><td>${p.summary}</td>`;tbody.appendChild(tr);annotations.push({x:parseUTC(p.timestamp).getTime(),borderColor:p.direction==='bullish'?'#a5d6a7':'#ef9a9a',label:{style:{background:'#fff'},text:p.direction==='bullish'?'📈':'📉'}});});}else{rows.forEach(p=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${p.start_timestamp.slice(11,16)}</td><td>${p.end_timestamp.slice(11,16)}</td><td><code>${p.sequence.join(', ')}</code></td><td>${p.direction}</td><td>${p.bias.toFixed(3)}</td><td>${(p.bullish_ratio*100).toFixed(1)}%</td><td>${(p.bearish_ratio*100).toFixed(1)}%</td><td>${(p.neutral_ratio*100).toFixed(1)}%</td>`;tbody.appendChild(tr);annotations.push({x:parseUTC(p.end_timestamp).getTime(),borderColor:p.direction==='bullish'?'#a5d6a7':'#ef9a9a',label:{style:{background:'#fff'},text:p.direction==='bullish'?'📈':'📉'}});});}
-        const summary=qs('#pattern-summary');if(rows.length){const t=rows[0];const dir=t.direction||'neutral';summary.className=`alert mt-4 advice-${dir}`;summary.innerHTML=t.pattern?`${dir==='bullish'?'📈':'📉'} ${t.pattern} detected at ${t.timestamp.slice(11,16)} – ${t.summary}`:`${dir==='bullish'?'📈':'📉'} Last pattern: <code>${t.sequence.join(', ')}</code> — Bias <strong>${t.bias.toFixed(2)}</strong>`;}else{summary.className='alert mt-4 advice-neutral';summary.textContent='No pattern detected for this period.';}
-        const box=qs('#decision-assistant');if(rows.length){const t=rows[0];const emoji=t.direction==='bullish'?'📈':t.direction==='bearish'?'📉':'⏸️';const title=t.pattern?`${t.pattern} (${t.direction})`:`${t.direction==='bullish'?'Bullish':'Bearish'} signal`;let timing=t.pattern?`Detected at ${t.timestamp.slice(11,16)}`:`Valid from ${t.start_timestamp.slice(11,16)} to ${t.end_timestamp.slice(11,16)}`;box.innerHTML=`<p>${emoji} <strong>${title}</strong></p><p class="mb-1">${interpretPattern(t)}</p><p class="mb-1"><em>${actionAdvice(t.direction)}</em></p><small class="text-muted">${timing}</small>`;}else{box.innerHTML='<p class="text-muted">No actionable signal…</p>';}
-        loadCandlestickData();}catch(e){console.error(e);}finally{hide('#loaderAdvice');}}
-        function loadAll(){loadPatterns();}
-        window.addEventListener('load',()=>{const n=new Date();qs('#endDate').value=localInputValue(n);qs('#startDate').value=localInputValue(new Date(n.getTime()-60*60*1000));loadAll();});
+        /* =========================================================
+           1)  Knowledge base : patterns + action à réaliser
+           ========================================================= */
+        const PATTERN_INFO = {
+          CDLHAMMER: {
+            name   : "Hammer",
+            def    : "Small body near top, long lower shadow (≥ 2× body).",
+            meaning: "Potential bullish reversal.",
+            invalid: "Close below the Hammer low.",
+            todo   : "Buy when price breaks above the Hammer high; invalidate if it closes back below the low."
+          },
+          CDLENGULFING: {
+            name   : "Engulfing",
+            def    : "Second candle completely engulfs the previous body.",
+            meaning: "Reversal: bullish (+) or bearish (–).",
+            invalid: "No follow-through within 2 bars.",
+            todo   : "Trade the break of the Engulfing range — long above high (bullish) / short below low (bearish)."
+          },
+          CDLSHOOTINGSTAR: {
+            name   : "Shooting Star",
+            def    : "Small body near low, long upper shadow.",
+            meaning: "Potential bearish reversal.",
+            invalid: "Close above the pattern high.",
+            todo   : "Sell / short if price falls below the Shooting-Star low; stop just above the high."
+          },
+          CDLHANGINGMAN: {
+            name   : "Hanging Man",
+            def    : "Hammer shape after an advance.",
+            meaning: "Bearish warning – needs confirmation.",
+            invalid: "Strong close above pattern high.",
+            todo   : "Consider shorting after a bearish confirmation candle closes below the low."
+          },
+          CDLDOJI: {
+            name   : "Doji",
+            def    : "Open ≈ Close; shadows vary.",
+            meaning: "Indecision – wait for breakout.",
+            invalid: "Continuation breakout.",
+            todo   : "Wait for breakout of the Doji’s high or low, then trade in that direction."
+          },
+          CDLMORNINGSTAR: {
+            name   : "Morning Star",
+            def    : "Bearish candle, pause, strong bullish close.",
+            meaning: "Reliable bullish reversal.",
+            invalid: "Close below pattern low.",
+            todo   : "Enter long at the close of the 3rd candle; stop under pattern low; first target = 2× risk."
+          },
+          CDLEVENINGSTAR: {
+            name   : "Evening Star",
+            def    : "Bullish candle, pause, strong bearish close.",
+            meaning: "Reliable bearish reversal.",
+            invalid: "Close above pattern high.",
+            todo   : "Enter short at the close of the 3rd candle; stop above pattern high; first target = 2× risk."
+          },
+          CDLPIERCING: {
+            name   : "Piercing Line",
+            def    : "Bullish candle opens below low, closes > 50 % into previous.",
+            meaning: "Near-term upside reversal.",
+            invalid: "Close below bullish candle low.",
+            todo   : "Go long if price stays above the mid-body; stop below pattern low."
+          },
+          CDLDARKCLOUDCOVER: {
+            name   : "Dark Cloud Cover",
+            def    : "Bearish candle opens above high, closes < 50 % into previous.",
+            meaning: "Potential downside reversal.",
+            invalid: "Close above bearish candle high.",
+            todo   : "Go short if price holds below the mid-body; stop above pattern high."
+          }
+        };
+
+        /* =========================================================
+           2)  Helpers & state
+           ========================================================= */
+        const qs   = sel => document.querySelector(sel);
+        const show = sel => qs(sel).classList.remove('d-none');
+        const hide = sel => qs(sel).classList.add('d-none');
+
+        let chart;          // ApexCharts instance
+        let annotations = [];
+
+        /* Local YYYY-MM-DDTHH:MM  -> same string but UTC */
+        function localToUtcStr(localStr) {
+          return new Date(localStr).toISOString().slice(0,16);   // trims seconds+Z
+        }
+
+        /* Parse ISO always as UTC  */
+        function parseUTC(iso) {
+          return new Date(/Z|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + 'Z');
+        }
+
+        /* HH:MM dans le fuseau de l'utilisateur */
+        function fmtTime(iso) {
+          if (!iso) return '';
+          /* s’assure que la chaîne possède le décalage ou un Z final */
+          const utcIso = /Z|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + 'Z';
+
+          const d = new Date(utcIso);    // Date interprétée en UTC
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+
+        /* Format Date → value for <input type=datetime-local> (local tz) */
+        function toInputLocal(d) {
+          const pad = v => String(v).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` +
+                 `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        /* Fill start/end with last hour in user tz */
+        function setDefaultRange() {
+          const now   = new Date();
+          const start = new Date(now.getTime() - 60 * 60 * 1000);
+          qs('#endDate').value   = toInputLocal(now);
+          qs('#startDate').value = toInputLocal(start);
+        }
+
+        /* =========================================================
+           3)  Chart
+           ========================================================= */
+        async function loadCandlestickData() {
+          const symbol = qs('#symbolSelect').value;
+          const start = localToUtcStr(qs('#startDate').value);
+          const end   = localToUtcStr(qs('#endDate').value);
+
+          const url = `/api/candlestick/load?symbol=${symbol}&start_date=${start}&end_date=${end}`;
+
+          try {
+            const json = await (await fetch(url)).json();
+
+            const data = json.data.map(d => ({
+              x: parseUTC(d.timestamp_utc).getTime(),
+              y: [d.open, d.high, d.low, d.close]
+            }));
+
+            const opts = {
+              chart  : { type: 'candlestick', height: 500, animations: { enabled: false } },
+              xaxis  : { type: 'datetime', labels: { datetimeUTC: false } },
+              series : [{ data }],
+              annotations: { xaxis: annotations }
+            };
+
+            if (!chart) {
+              chart = new ApexCharts(qs('#candlestick-chart'), opts);
+              chart.render();
+            } else {
+              chart.updateSeries([{ data }]);
+              chart.updateOptions({ annotations: { xaxis: annotations } });
+            }
+          } catch (e) { console.error(e); }
+        }
+
+        /* =========================================================
+           4)  Generic fallback advice
+           ========================================================= */
+        function genericAdvice(d) {
+          if (d === 'bullish')  return 'Consider long entries or scaling out of shorts.';
+          if (d === 'bearish')  return 'Consider profit-taking or short setups.';
+          return 'Wait for confirmation.';
+        }
+
+        /* =========================================================
+           5)  Build table header
+           ========================================================= */
+        function buildHeaders(mode) {
+          qs('#patterns-header').innerHTML =
+            mode === 'classic'
+              ? '<th>Time</th><th>Pattern</th><th>Dir.</th><th>Definition</th>'
+              : '<th>Start</th><th>End</th><th>Sequence</th><th>Dir.</th><th>Bias</th><th>Bull</th><th>Bear</th><th>Neutral</th>';
+        }
+
+        /* =========================================================
+           6)  Load patterns  (API → table, banner, assistant, chart)
+           ========================================================= */
+        async function loadPatterns() {
+
+          const mode   = qs('#patternMode').value;
+          const symbol = qs('#symbolSelect').value;
+          const start = localToUtcStr(qs('#startDate').value);
+          const end   = localToUtcStr(qs('#endDate').value);
+          console.log(start);
+          const endpoint = mode === 'classic'
+              ? `/api/candlestick/patterns/classic?symbol=${symbol}&start_date=${start}&end_date=${end}`
+              : `/api/candlestick/patterns?symbol=${symbol}&start_date=${start}&end_date=${end}`;
+
+          buildHeaders(mode);
+          show('#loaderAdvice');
+
+          try {
+            const rows = (await (await fetch(endpoint)).json()).patterns_detected || [];
+            const tbody = qs('#patterns-body');
+            tbody.innerHTML = '';
+            annotations = [];
+
+            /* ---------- 1. Table + annotations ---------- */
+            if (mode === 'classic') {
+              rows.forEach(p => {
+                const meta = PATTERN_INFO[p.pattern_code] || {};
+                tbody.insertAdjacentHTML('beforeend', `
+                  <tr>
+                    <td>${fmtTime(p.timestamp)}</td>
+                    <td>${meta.name}</td>
+                    <td>${p.direction}</td>
+                    <td>${meta.def}</td>
+                  </tr>`);
+
+                annotations.push({
+                  x: parseUTC(p.timestamp).getTime(),
+                  borderColor: p.direction==='bullish' ? '#a5d6a7' : '#ef9a9a',
+                  label: { style:{background:'#fff'}, text: p.direction==='bullish' ? '📈' : '📉',orientation: 'horizontal' }
+                });
+              });
+            } else {
+              rows.forEach(p => {
+                tbody.insertAdjacentHTML('beforeend', `
+                  <tr>
+                    <td>${fmtTime(p.start_timestamp)}</td>
+                    <td>${fmtTime(p.end_timestamp)}</td>
+                    <td><code>${p.sequence.join(', ')}</code></td>
+                    <td>${p.direction}</td>
+                    <td>${p.bias.toFixed(3)}</td>
+                    <td>${(p.bullish_ratio*100).toFixed(1)}</td>
+                    <td>${(p.bearish_ratio*100).toFixed(1)}</td>
+                    <td>${(p.neutral_ratio*100).toFixed(1)}</td>
+                  </tr>`);
+
+                annotations.push({
+                  x: parseUTC(p.end_timestamp).getTime(),
+                  borderColor: p.direction==='bullish' ? '#a5d6a7' : '#ef9a9a',
+                  label: { style:{background:'#fff'}, text: p.direction==='bullish' ? '📈' : '📉' ,orientation: 'horizontal'}
+                });
+              });
+            }
+
+            /* ---------- 2. Sélection du dernier pattern ---------- */
+            const last = rows.reduce((acc, cur) => {
+              if (!acc) return cur;
+              const t1 = parseUTC(mode==='classic' ? acc.timestamp : acc.end_timestamp);
+              const t2 = parseUTC(mode==='classic' ? cur.timestamp : cur.end_timestamp);
+              return t2 > t1 ? cur : acc;
+            }, null);
+
+            /* ---------- 3. Banner ---------- */
+            const banner = qs('#pattern-summary');
+            if (last) {
+              const dir = last.direction || 'neutral';
+              banner.className = `alert mt-4 advice-${dir}`;
+
+              if (mode === 'classic') {
+                const meta = PATTERN_INFO[last.pattern_code];
+                banner.innerHTML =
+                  `${dir==='bullish'?'📈':'📉'} ${meta.name} detected at ${fmtTime(last.timestamp)} — ${meta.meaning}`;
+              } else {
+                banner.innerHTML =
+                  `${dir==='bullish'?'📈':'📉'} Last ML pattern bias <strong>${last.bias.toFixed(2)}</strong>`;
+              }
+            } else {
+              banner.className = 'alert mt-4 advice-neutral';
+              banner.textContent = 'No pattern detected.';
+            }
+
+            /* ---------- 4. Decision assistant ---------- */
+            const box = qs('#decision-assistant');
+            if (last) {
+              const dir   = last.direction || 'neutral';
+              const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
+              let html = '';
+
+              if (mode === 'classic') {
+                const meta = PATTERN_INFO[last.pattern_code];
+                html += `
+                  <p>${emoji} <strong>${meta.name} (${dir})</strong></p>
+                  <p class="mb-1">${meta.def}</p>
+                  <em>${meta.meaning}</em><br>
+                  <small>Invalidation: ${meta.invalid}</small>
+                  <p class="fw-bold mt-2">${meta.todo}</p>`;
+              } else {
+                html += `
+                  <p>${emoji} <strong>${dir==='bullish'?'Bullish':'Bearish'} signal</strong></p>
+                  <p class="mb-1">Bias: ${last.bias.toFixed(2)}</p>
+                  <p class="mb-1">Seq: <code>${last.sequence.join(', ')}</code></p>
+                  <p class="fw-bold mt-2">${genericAdvice(dir)}</p>`;
+              }
+
+              box.innerHTML = html;
+            } else {
+              box.innerHTML = '<p class="text-muted">No actionable signal…</p>';
+            }
+
+            /* ---------- 5. Update chart ---------- */
+            loadCandlestickData();
+
+          } finally {
+            hide('#loaderAdvice');
+          }
+        }
+
+        /* =========================================================
+           7)  Init
+           ========================================================= */
+        function loadAll() { loadPatterns(); }
+
+        window.addEventListener('load', () => {
+          setDefaultRange();
+          loadAll();
+        });
     </script>
+
+
 </body>
 </html>
