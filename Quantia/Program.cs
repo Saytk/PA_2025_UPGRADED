@@ -12,7 +12,6 @@ builder.Services.AddControllersWithViews();
 
 // Services personnalisés
 builder.Services.AddSingleton<SentimentFileService>();
-builder.Services.AddHttpClient<PortfolioPriceService>();
 builder.Services.AddScoped<PortfolioEquityService>();      // déjà présent
 builder.Services.AddHttpClient<TradeSuggestionService>();  // nouveau
 builder.Services.AddScoped<TradeSuggestionService>();      // pour DI
@@ -57,6 +56,7 @@ builder.Services.AddHttpClient("LocalAPI", client =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICryptoPriceService, CryptoPriceService>();
+builder.Services.AddScoped<PortfolioPriceService>();
 
 // ──────────────────────────────
 // BUILD & PIPELINE

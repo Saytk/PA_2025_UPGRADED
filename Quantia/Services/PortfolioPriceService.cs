@@ -1,49 +1,89 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace Quantia.Services
 {
+    /// <summary>Service prix : lit /data/{symbol} (format objet OU tableau).</summary>
     public class PortfolioPriceService
     {
         private readonly HttpClient _http;
-        public PortfolioPriceService(HttpClient http) => _http = http;
+        private const string API = "http://localhost:8000";
 
-        /* ───────────────────────── Dernier prix ───────────────────────── */
+        public PortfolioPriceService(IHttpClientFactory factory)
+            => _http = factory.CreateClient();
+
+        /*──────────── Dernier prix (optimisé) ────────────*/
         public async Task<decimal?> GetLatestPrice(string symbol)
         {
-            var url = $"http://localhost:8000/data/{symbol}?days=1&interval=1m";
-
-            var resp = await _http.GetFromJsonAsync<DataResponse>(url);
-            if (resp?.Data == null || resp.Data.Count == 0) return null;
-
-            var last = resp.Data.Last();
-            return last.Close ?? last.Price;
+            try
+            {
+                var url = $"{API}/data/{symbol}/last_candle";
+                var json = await _http.GetFromJsonAsync<LastCandleResponse>(url);
+                return json?.PriceUsdt;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        /* ─────────────── Prix minute le plus proche d’une date ─────────── */
+        /*──── Prix minute le plus proche d’une date ────*/
         public async Task<decimal?> GetHistoricalPrice(string symbol, DateTime utcTime)
         {
-            // Nombre de jours à remonter depuis maintenant (minimum 1)
-            var daysBack = Math.Max(1, (DateTime.UtcNow.Date - utcTime.Date).Days + 1);
-            var url = $"http://localhost:8000/data/{symbol}?days={daysBack}&interval=1m";
+            var days = Math.Max(1, (DateTime.UtcNow.Date - utcTime.Date).Days + 1);
+            var url = $"{API}/data/{symbol}?days={days}&interval=1m&raw=true";
 
-            var resp = await _http.GetFromJsonAsync<DataResponse>(url);
-            if (resp?.Data == null || resp.Data.Count == 0) return null;
+            var candles = await FetchCandles(url);
+            if (candles == null || candles.Count == 0) return null;
 
-            var candle = resp.Data
-                             .Where(c => DateTime.Parse(c.TimestampUtc) <= utcTime)
-                             .OrderByDescending(c => DateTime.Parse(c.TimestampUtc))
-                             .FirstOrDefault();
+            var candle = candles
+                .Where(c => DateTime.TryParse(c.TimestampUtc, out var t) && t <= utcTime)
+                .OrderByDescending(c => DateTime.Parse(c.TimestampUtc))
+                .FirstOrDefault();
 
             return candle?.Close ?? candle?.Price;
         }
 
-        /* ──────────────────────── DTO de désérialisation ──────────────── */
+        /*──────── Fetch + désérialisation robuste ───────*/
+        private async Task<List<Candle>?> FetchCandles(string url)
+        {
+            try
+            {
+                var json = await _http.GetStringAsync(url);
+                if (string.IsNullOrWhiteSpace(json)) return null;
+
+                json = json.TrimStart();
+                if (json.StartsWith("{"))
+                {
+                    var obj = JsonSerializer.Deserialize<DataResponse>(json);
+                    return obj?.Data;
+                }
+                if (json.StartsWith("["))
+                {
+                    return JsonSerializer.Deserialize<List<Candle>>(json);
+                }
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /*──────── DTO internes ───────*/
+
+        // Pour /data/{symbol}/last_candle
+        private class LastCandleResponse
+        {
+            [JsonPropertyName("price_usdt")] public decimal PriceUsdt { get; set; }
+        }
+
+        // Pour /data/{symbol}?raw=true
         private class DataResponse
         {
             [JsonPropertyName("data")]
@@ -52,15 +92,9 @@ namespace Quantia.Services
 
         private class Candle
         {
-            [JsonPropertyName("timestamp_utc")]
-            public string TimestampUtc { get; set; } = "";
-
-            // Le endpoint /data renvoie au moins "close"; on garde aussi "price"
-            [JsonPropertyName("close")]
-            public decimal? Close { get; set; }
-
-            [JsonPropertyName("price")]
-            public decimal? Price { get; set; }
+            [JsonPropertyName("timestamp_utc")] public string TimestampUtc { get; set; } = "";
+            [JsonPropertyName("close")] public decimal? Close { get; set; }
+            [JsonPropertyName("price")] public decimal? Price { get; set; }
         }
     }
 }

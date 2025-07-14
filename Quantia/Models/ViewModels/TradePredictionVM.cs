@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using Quantia.Models;
 
 namespace Quantia.Models.ViewModels
 {
-    /// <summary>Vue combinant equity, signaux, stats et suggestion détaillée</summary>
+    /// <summary>
+    /// Vue combinant equity, signaux, stats, suggestion détaillée
+    /// et historique des trades exécutés.
+    /// </summary>
     public class TradePredictionVM
     {
         /* ─────── Courbe d’équité ─────── */
@@ -22,6 +24,10 @@ namespace Quantia.Models.ViewModels
         public decimal UnrealizedPnl { get; set; }
         public decimal WinRate { get; set; }
         public decimal ProfitFactor { get; set; }
+
+        /* ─────── Trades déjà enregistrés ─────── */
+        public IEnumerable<TradeModel> ExecutedTrades { get; set; }
+            = Array.Empty<TradeModel>();
 
         /* ─────── Agrégation facultative ─────── */
         public PortfolioStats Stats

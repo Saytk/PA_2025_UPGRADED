@@ -1,152 +1,146 @@
 ﻿@model Quantia.Models.ViewModels.TradePredictionVM
 @using Newtonsoft.Json
+
 @{
-    ViewBag.Section = "Trade Prediction";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Section = "Live Trades";
 
-    // ----- Récupère la valeur de risque dans l’URL (défaut = 1) -----
-    var riskParam = Context.Request.Query["risk"].FirstOrDefault() ?? "1";
+    var sigsJson = JsonConvert.SerializeObject(Model.Signals);
 }
+
+<form id="trade-form">@Html.AntiForgeryToken()</form>
+
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
-<h1 class="text-2xl font-semibold mb-6">Trade Prediction – BTC/USDT</h1>
+<div class="p-6 max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold text-cyan-400 mb-8 text-center">🚀 Live Trading Signals</h1>
 
-<!-- Stat cards -->
-<div class="grid grid-cols-4 gap-4 mb-8">
-    <div class="p-4 bg-white rounded shadow">
-        <p class="text-sm text-gray-500">Balance</p>
-        <p class="text-xl font-bold">@($"{Model.Balance:F2}") USDT</p>
-    </div>
-    <div class="p-4 bg-white rounded shadow">
-        <p class="text-sm text-gray-500">PNL latent</p>
-        <p class="text-xl font-bold">@($"{Model.UnrealizedPnl:F2}") USDT</p>
-    </div>
-    <div class="p-4 bg-white rounded shadow">
-        <p class="text-sm text-gray-500">Win Rate</p>
-        <p class="text-xl font-bold">@($"{Model.WinRate:P1}")</p>
-    </div>
-    <div class="p-4 bg-white rounded shadow">
-        <p class="text-sm text-gray-500">Profit Factor</p>
-        <p class="text-xl font-bold">@($"{Model.ProfitFactor:F2}")</p>
-    </div>
-</div>
+    <!-- Signaux -->
+    <div id="signals" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
 
-<!-- Slider risque -->
-<div class="mb-6 flex items-center gap-4">
-    <label class="text-sm">Risque (xATR)</label>
-    <input id="riskRange" type="range" min="0.5" max="3" step="0.5"
-           value="@riskParam" class="w-64">
-    <span id="riskVal" class="font-semibold">@riskParam</span> x
-    <button id="reloadBtn"
-            class="ml-4 px-3 py-1 text-xs text-white bg-blue-600 rounded">
-        Rafraîchir
-    </button>
-</div>
-
-<!-- Equity curve -->
-<div class="bg-white rounded shadow p-4 mb-8">
-    <h2 class="text-lg font-semibold mb-4">Équity 30 j</h2>
-    <canvas id="equityChart" height="90"></canvas>
-</div>
-
-<!-- Signals -->
-<div class="bg-white rounded shadow p-4">
-    <h2 class="text-lg font-semibold mb-4">Signaux actifs</h2>
-
-    @if (!Model.Signals.Any())
-    {
-        <p class="text-gray-500 italic">Aucun trade proposé (signal FLAT ou erreur API).</p>
-    }
-    else
-    {
-        <table class="min-w-full table-fixed text-sm">
-            <thead>
-                <tr class="border-b bg-gray-50">
-                    <th class="py-2 px-4 w-16  text-center">Heure</th>
-                    <th class="py-2 px-4 w-20  text-center">Side</th>
-                    <th class="py-2 px-4 w-20  text-center">Proba</th>
-                    <th class="py-2 px-4 w-24  text-center">Entry</th>
-                    <th class="py-2 px-4 w-24  text-center">SL</th>
-                    <th class="py-2 px-4 w-24  text-center">TP</th>
-                    <th class="py-2 px-4 w-16  text-center">R:R</th>
-                    <th class="py-2 px-4 w-24  text-center">Pos</th>
-                    <th class="py-2 px-4 w-24  text-center">Conf.</th>
-                    <th class="py-2 px-4 w-24  text-center"></th>
+    <!-- Positions ouvertes -->
+    <h2 class="text-xl mt-10 mb-4 font-semibold text-white">📈 Open Positions</h2>
+    <table class="min-w-full table-auto bg-gray-800 text-white rounded overflow-hidden">
+        <thead>
+            <tr class="bg-cyan-900 text-left text-sm uppercase">
+                <th class="p-2">Symbol</th>
+                <th class="p-2">Entry</th>
+                <th class="p-2">Current</th>
+                <th class="p-2">PnL $</th>
+                <th class="p-2">PnL %</th>
+            </tr>
+        </thead>
+        <tbody id="positions">
+            @foreach (var t in Model.ExecutedTrades.Where(e => e.SellDate == null))
+            {
+                <tr data-id="@t.Id" data-symbol="@t.CryptoSymbol" data-entry="@t.BuyPrice" data-qty="@t.Quantity">
+                    <td class="p-2">@t.CryptoSymbol</td>
+                    <td class="p-2">@t.BuyPrice</td>
+                    <td class="p-2 current">–</td>
+                    <td class="p-2 pnl">–</td>
+                    <td class="p-2 pnlpct">–</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in Model.Signals)
-                {
-                    <tr class="border-b hover:bg-gray-50 text-center text-nowrap">
-                        <td class="py-2 px-4">@s.Timestamp.ToString("HH:mm")</td>
-                        <td class="py-2 px-4 font-medium @(s.Side == "BUY" ? "text-green-600" : "text-red-600")">
-                            @s.Side
-                        </td>
-                        <td class="py-2 px-4">@($"{s.Probability:P1}")</td>
-                        <td class="py-2 px-4">@s.Entry</td>
-                        <td class="py-2 px-4">@s.StopLoss</td>
-                        <td class="py-2 px-4">@s.TakeProfit</td>
-                        <td class="py-2 px-4">@s.RiskReward</td>
-                        <td class="py-2 px-4">@($"{s.PositionSize:F4}")</td>
-                        <td class="py-2 px-4">@($"{s.Confidence:P1}")</td>
-                        <td class="py-2 px-4">
-                            <button class="px-3 py-1 text-xs text-white bg-indigo-600 rounded"
-                                    onclick="execOrder('@s.Symbol', @s.Entry, @s.StopLoss, @s.TakeProfit, @s.PositionSize)">
-                                Passer
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+            }
+        </tbody>
+    </table>
 </div>
 
-<!-- Chart.js -->
-<script>
-    /* ---------- Courbe equity ---------- */
-    new Chart(document.getElementById('equityChart'), {
-        type: 'line',
-        data: {
-            labels: @Html.Raw(JsonConvert.SerializeObject(
-                 Model.EquityDates.ConvertAll(d => d.ToString("dd MMM"))
-            )),
-            datasets: [{
-                data: @Html.Raw(JsonConvert.SerializeObject(Model.EquityValues)),
-                fill: false,
-                tension: .3
-            }]
-        },
-        options: { plugins: { legend: { display: false } } }
-    });
+@section Scripts {
+    <script>
+        const signals = JSON.parse('@Html.Raw(sigsJson)');
+        const grid = document.getElementById("signals");
 
-    /* ---------- Slider risque ---------- */
-    const rrange = document.getElementById('riskRange');
-    const rval   = document.getElementById('riskVal');
-    rrange.addEventListener('input', () => rval.textContent = rrange.value);
+        function buildSignalCard(s) {
+            const sideColor = s.Side === "BUY" || s.Side === "LONG" ? "text-green-400" : "text-red-400";
+            return `
+            <div class="bg-gray-900 p-4 rounded-lg shadow hover:shadow-lg transition">
+                <h3 class="text-lg font-semibold ${sideColor} mb-2">${s.Side} – ${s.Symbol}</h3>
+                <ul class="text-sm space-y-1 text-gray-300">
+                    <li><strong>Entry:</strong> ${s.Entry}</li>
+                    <li><strong>SL:</strong> ${s.StopLoss}</li>
+                    <li><strong>TP:</strong> ${s.TakeProfit}</li>
+                    <li><strong>Confidence:</strong> ${(s.Confidence * 100).toFixed(1)}%</li>
+                </ul>
+                <button onclick="execTrade('${s.Symbol}', ${s.EntryPrice}, ${s.StopLoss}, ${s.TakeProfit})"
+                        class="mt-4 w-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium py-1.5 rounded">
+                    Trade
+                </button>
+            </div>`;
+        }
 
-    document.getElementById('reloadBtn').addEventListener('click', () => {
-        const r = rrange.value;
-        window.location = `/Prediction?symbol=BTCUSDT&risk=${r}`;
-    });
+        function renderSignals() {
+            grid.innerHTML = signals.length
+                ? signals.map(buildSignalCard).join("")
+                : `<p class="text-gray-400 col-span-full text-center">No signal available</p>`;
+        }
 
-    /* ---------- Passage d’ordre ---------- */
-    function execOrder(sym, entry, sl, tp, defaultQty) {
-        const qty = prompt("Quantity ?", Number(defaultQty).toFixed(4));
-        if (!qty) return;
+        async function execTrade(symbol, entry, sl, tp) {
+            const qty = prompt("Quantity ?", "0.001");
+            if (!qty || isNaN(qty)) return;
 
-        fetch('/Portfolio/Add', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                cryptoSymbol: sym,
-                amount: parseFloat(qty),
-                priceAtPurchase: entry
-            })
-        }).then(r => {
-            if (r.ok) location.reload();
-            else alert('Erreur enregistrement trade');
-        });
-    }
-</script>
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            if (!token) {
+                alert("Security token missing");
+                return;
+            }
+
+            const model = {
+                CryptoSymbol: symbol,
+                Quantity: +qty,
+                BuyPrice: +entry,
+                StopLoss: +sl,
+                TakeProfit: +tp,
+                BuyDate: new Date().toISOString()
+            };
+
+            const response = await fetch('/Trade/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(model)
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                const err = await response.text();
+                alert("Trade failed:\n" + err);
+            }
+        }
+
+        async function updateLivePnL() {
+            const rows = document.querySelectorAll("#positions tr");
+            for (const row of rows) {
+                const symbol = row.dataset.symbol;
+                const entry = parseFloat(row.dataset.entry);
+                const qty = parseFloat(row.dataset.qty);
+
+                try {
+                    const r = await fetch(`/data/${symbol}/last_candle`);
+                    const j = await r.json();
+                    const last = +j.price_usdt;
+
+                    const pnl = (last - entry) * qty;
+                    const pct = ((last - entry) / entry) * 100;
+
+                    row.querySelector(".current").textContent = last.toFixed(2);
+                    row.querySelector(".pnl").textContent = pnl.toFixed(2);
+                    row.querySelector(".pnlpct").textContent = pct.toFixed(2) + "%";
+
+                    row.classList.toggle("bg-green-900", pnl > 0);
+                    row.classList.toggle("bg-red-900", pnl < 0);
+                } catch {
+                    continue;
+                }
+            }
+
+            setTimeout(updateLivePnL, 10000);
+        }
+
+        renderSignals();
+        updateLivePnL();
+    </script>
+}

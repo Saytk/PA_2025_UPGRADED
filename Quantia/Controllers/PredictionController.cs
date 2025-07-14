@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// Controllers/PredictionController.cs
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Quantia.Models;
 using Quantia.Models.ViewModels;
 using Quantia.Services;
@@ -18,46 +20,45 @@ namespace Quantia.Controllers
         private readonly IHttpClientFactory _http;
         private readonly PortfolioEquityService _equityService;
         private readonly IHttpContextAccessor _httpContext;
+        private readonly AppDbContext _db;          // ← NEW
 
         public PredictionController(
             IHttpClientFactory httpFactory,
             PortfolioEquityService equityService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            AppDbContext dbContext)                // ← NEW
         {
             _http = httpFactory;
             _equityService = equityService;
             _httpContext = httpContextAccessor;
+            _db = dbContext;                       // ← NEW
         }
 
         private HttpClient MlClient => _http.CreateClient();
 
-        /* ------------------------------------------------------------------ */
-        /*  PAGE PRINCIPALE                                                   */
-        /* ------------------------------------------------------------------ */
+        /*---------------------------------------------------------------*
+         *  PAGE PRINCIPALE
+         *---------------------------------------------------------------*/
         [HttpGet("")]
         public async Task<IActionResult> Index(string symbol = "BTCUSDT")
-        {
-            var vm = await BuildViewModel(symbol);
-            return View("TradePrediction", vm);
-        }
+            => View("TradePrediction", await BuildViewModel(symbol));
 
-        /* ------------------------------------------------------------------ */
-        /*  ENDPOINT JSON (Polling)                                           */
-        /* ------------------------------------------------------------------ */
+        /*---------------------------------------------------------------*
+         *  ENDPOINT JSON (Polling)
+         *---------------------------------------------------------------*/
         [HttpGet("json")]
         public async Task<IActionResult> GetJson(string symbol = "BTCUSDT")
             => Json(await BuildViewModel(symbol));
 
-        /* ------------------------------------------------------------------ */
-        /*  CONSTRUCTION DU VIEWMODEL                                         */
-        /* ------------------------------------------------------------------ */
+        /*---------------------------------------------------------------*
+         *  CONSTRUCTION DU VIEWMODEL
+         *---------------------------------------------------------------*/
         private async Task<TradePredictionVM> BuildViewModel(string symbol)
         {
-            /* ---- 1. Appel à l’API ML (fortement typé) -------------------- */
+            /*=== 1. Appel modèle ML ======================================*/
             var raw = await MlClient.GetFromJsonAsync<PredictionResponse>(
                           $"{ML_API_BASE}/prediction/latest?symbol={symbol}");
 
-            /* ---- 2. Mapping vers TradeSignal ----------------------------- */
             var signals = new List<TradeSignal>();
             if (raw is not null)
             {
@@ -77,29 +78,38 @@ namespace Quantia.Controllers
                 });
             }
 
-            /* ---- 3. Équity & stats utilisateur --------------------------- */
+            /*=== 2. Trades déjà enregistrés ==============================*/
             int userId = int.Parse(_httpContext.HttpContext!
                                    .User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+            var trades = await _db.Trades                          // DbSet<TradeModel>
+                                  .Where(t => t.UserId == userId
+                                           && t.CryptoSymbol == symbol)
+                                  .OrderBy(t => t.BuyDate)
+                                  .ToListAsync();
+
+            /*=== 3. Equity & stats ======================================*/
             var (dates, values) = await _equityService.GetEquityAsync(userId, 30);
             var stats = await _equityService.GetStatsAsync(userId);
 
-            /* ---- 4. ViewModel final -------------------------------------- */
+            /*=== 4. VM final ============================================*/
             return new TradePredictionVM
             {
                 EquityDates = dates,
                 EquityValues = values,
-                Signals = signals,
                 Balance = stats.Balance,
                 UnrealizedPnl = stats.UnrealizedPnL,
                 WinRate = stats.WinRate,
-                ProfitFactor = stats.ProfitFactor
+                ProfitFactor = stats.ProfitFactor,
+
+                Signals = signals,
+                ExecutedTrades = trades        // ← NEW  (ajoute la liste à la vue)
             };
         }
 
-        /* ------------------------------------------------------------------ */
-        /*  ACTIONS EXISTANTES                                                */
-        /* ------------------------------------------------------------------ */
+        /*---------------------------------------------------------------*
+         *  ACTIONS EXISTANTES
+         *---------------------------------------------------------------*/
         [HttpPost("RefreshModel")]
         public async Task<IActionResult> RefreshModel()
         {
@@ -123,7 +133,7 @@ namespace Quantia.Controllers
             return Content(json, "application/json");
         }
 
-        /* ------------------------------------------------------------------ */
+        /*---------------------------------------------------------------*/
         public record PipelineRequest(string Mode, string Symbol, int Days, string? ModelPath);
     }
 }

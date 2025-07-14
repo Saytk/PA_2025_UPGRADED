@@ -19,22 +19,28 @@ namespace Quantia.Services
         public async Task<(List<DateTime> Dates, List<decimal> Values)> GetEquityAsync(int userId, int days = 30)
         {
             var since = DateTime.UtcNow.AddDays(-days);
-            var rows = await _context.Transactions
-                .Where(t => t.UserId == userId && t.Timestamp >= since)
-                .OrderBy(t => t.Timestamp)
+
+            var trades = await _context.Trades
+                .Where(t => t.UserId == userId && t.BuyDate >= since)
+                .OrderBy(t => t.BuyDate)
                 .ToListAsync();
 
             var dates = new List<DateTime>();
             var equity = new List<decimal>();
             decimal balance = 0;
 
-            foreach (var tx in rows)
+            foreach (var trade in trades)
             {
-                var price = await _price.GetHistoricalPrice(tx.CryptoSymbol, tx.Timestamp)
-                            ?? tx.PriceAtPurchase;
+                var referenceDate = trade.SellDate ?? DateTime.UtcNow;
+                var price = await _price.GetHistoricalPrice(trade.CryptoSymbol, referenceDate)
+                            ?? trade.BuyPrice;
 
-                balance += tx.Amount * price;
-                dates.Add(tx.Timestamp);
+                decimal value = (trade.SellDate is null)
+                    ? trade.Quantity * price
+                    : (trade.Quantity * (trade.SellPrice ?? price));
+
+                balance += value;
+                dates.Add(referenceDate);
                 equity.Add(balance);
             }
 
@@ -43,22 +49,23 @@ namespace Quantia.Services
 
         public async Task<PortfolioStats> GetStatsAsync(int userId)
         {
-            var rows = await _context.Transactions
-                                     .Where(t => t.UserId == userId)
-                                     .ToListAsync();
+            var trades = await _context.Trades
+                .Where(t => t.UserId == userId)
+                .ToListAsync();
 
-            if (!rows.Any()) return new PortfolioStats();
+            if (!trades.Any()) return new PortfolioStats();
 
             decimal balance = 0, invested = 0, wins = 0, losses = 0;
 
-            foreach (var grp in rows.GroupBy(r => r.CryptoSymbol))
+            foreach (var grp in trades.GroupBy(t => t.CryptoSymbol))
             {
                 var last = await _price.GetLatestPrice(grp.Key);
                 if (last is null) continue;
 
-                var qty = grp.Sum(r => r.Amount);
+                var qty = grp.Where(t => t.SellDate == null).Sum(t => t.Quantity);
                 var curVal = qty * last.Value;
-                var invVal = grp.Sum(r => r.Amount * r.PriceAtPurchase);
+
+                var invVal = grp.Sum(t => t.Quantity * t.BuyPrice);
 
                 balance += curVal;
                 invested += invVal;
@@ -71,7 +78,7 @@ namespace Quantia.Services
             {
                 Balance = balance,
                 UnrealizedPnL = balance - invested,
-                WinRate = wins + losses == 0 ? 0 : wins / (wins + losses),
+                WinRate = (wins + losses) == 0 ? 0 : wins / (wins + losses),
                 ProfitFactor = losses == 0 ? wins : wins / losses
             };
         }
