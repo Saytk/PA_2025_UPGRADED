@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Quantia.Services;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
+using Quantia.Data;
+using Quantia.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +12,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddControllersWithViews();
 
 // Services personnalisés
-builder.Services.AddSingleton<SentimentFileService>();
-builder.Services.AddScoped<PortfolioEquityService>();      // déjà présent
-builder.Services.AddHttpClient<TradeSuggestionService>();  // nouveau
-builder.Services.AddScoped<TradeSuggestionService>();      // pour DI
+builder.Services.AddScoped<ISentimentRepository, EfSentimentRepository>();
+builder.Services.AddScoped<SentimentService>();
+builder.Services.AddScoped<PortfolioEquityService>();      
+builder.Services.AddHttpClient<TradeSuggestionService>();  
+builder.Services.AddScoped<TradeSuggestionService>();      
 
 // Sessions & cookies
 builder.Services.AddSession();

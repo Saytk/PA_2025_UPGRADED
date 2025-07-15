@@ -1,31 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Quantia.Services;
 
-namespace Quantia.Controllers
+namespace Quantia.Controllers;
+
+public sealed class SentimentAnalysisController : Controller
 {
-    public class SentimentAnalysisController : Controller
+    private readonly SentimentService _service;
+    public SentimentAnalysisController(SentimentService service) => _service = service;
+
+    public async Task<IActionResult> Index(CancellationToken ct)
     {
-        private readonly SentimentFileService _svc;
-
-        public SentimentAnalysisController(SentimentFileService svc)
+        try
         {
-            _svc = svc;
+            var dto = await _service.GetLatestAsync(ct);
+            return View(dto);
         }
-
-        /// <summary>
-        /// Affiche le dashboard de sentiment.
-        /// </summary>
-        public IActionResult Index()
+        catch (Exception ex)
         {
-            var data = _svc.GetLatest();
-            if (data == null)
-            {
-                // message simple si le JSON n'est pas encore prêt
-                return Content("Sentiment data not available. "
-                             + "The Python job may still be running.");
-            }
-
-            return View(data);          // passe le DTO à la vue Razor
+            return Content($"Sentiment data not available ({ex.Message}).");
         }
     }
 }

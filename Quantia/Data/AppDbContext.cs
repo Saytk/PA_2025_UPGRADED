@@ -12,5 +12,8 @@ public class AppDbContext : DbContext
 
     public DbSet<TradeModel> Trades => Set<TradeModel>();
 
+    public DbSet<SentimentScore> SentimentScores => Set<SentimentScore>();
+    public DbSet<SentimentDetail> SentimentDetails => Set<SentimentDetail>();
+
 
 }
