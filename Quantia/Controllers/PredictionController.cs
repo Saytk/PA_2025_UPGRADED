@@ -41,7 +41,7 @@ namespace Quantia.Controllers
          *---------------------------------------------------------------*/
         [HttpGet("")]
         public async Task<IActionResult> Index(string symbol = "BTCUSDT")
-            => View("TradePrediction", await BuildViewModel(symbol));
+            => View("Index", await BuildViewModel(symbol));
 
         /*---------------------------------------------------------------*
          *  ENDPOINT JSON (Polling)
@@ -135,5 +135,24 @@ namespace Quantia.Controllers
 
         /*---------------------------------------------------------------*/
         public record PipelineRequest(string Mode, string Symbol, int Days, string? ModelPath);
+        public record PredictRequest(string ApiUrl, string Symbol);
+
+
+        // POST /Prediction/GetPredictions
+        [HttpPost("GetPredictions")]
+        public async Task<IActionResult> GetPredictions([FromBody] PredictRequest dto)
+        {
+            try
+            {
+                // exemple : http://localhost:8000/pattern/predict-lates
+                var url = $"{dto.ApiUrl}?symbol={dto.Symbol}";
+                var json = await MlClient.GetStringAsync(url);
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Problem($"Error fetching predictions: {ex.Message}");
+            }
+        }
     }
 }
