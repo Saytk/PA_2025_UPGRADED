@@ -6,30 +6,23 @@ import backoff, os
 from openai import OpenAI, OpenAIError
 import tiktoken
 from dotenv import load_dotenv
-load_dotenv()                                     
+load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# --- Encodage tokens (détermine la longueur max) -------------------
-enc = tiktoken.encoding_for_model("gpt-4o-mini")  
+enc = tiktoken.encoding_for_model("gpt-4o-mini")
 MAX_MODEL_TOKENS = 128_000
-RESERVED_FOR_PROMPT = 2_000 
+RESERVED_FOR_PROMPT = 2_000  # header + réponse
 MAX_CONTEXT_TOKENS = MAX_MODEL_TOKENS - RESERVED_FOR_PROMPT
 
 
-# -------------------------------------------------------------------
 
 @backoff.on_exception(backoff.expo, OpenAIError, max_tries=5)
 def summarize(text: str, avg_score: float) -> str:
-    """
-    Coupe dynamiquement le contexte pour ne pas dépasser la limite modèle,
-    puis demande une explication concise (≤25 mots).
-    """
-    # --- Troncature dynamique --------------------------------------
+
     tokens = enc.encode(text)
     if len(tokens) > MAX_CONTEXT_TOKENS:
         tokens = tokens[:MAX_CONTEXT_TOKENS]
         text = enc.decode(tokens)
-    # ---------------------------------------------------------------
 
     trend = ("bullish (favorable)" if avg_score > 0.55
              else "bearish (défavorable)" if avg_score < 0.45

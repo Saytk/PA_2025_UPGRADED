@@ -1,29 +1,31 @@
-from typing import List, Dict
+﻿from __future__ import annotations
+import logging, re
+from typing import Dict, List
+import hdbscan, numpy as np
 from sentence_transformers import SentenceTransformer
-from sklearn.cluster import DBSCAN
-import numpy as np
-import re
 
-EMB_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-STOP = {"btc", "bitcoin", "crypto", "eth", "ethereum", "buy", "sell", "hodl"}
-TOKEN = re.compile(r"[a-zA-Z]{3,}")
+log = logging.getLogger(__name__)
+_sbert = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-def _clean(t: str) -> str:
-    return " ".join(tok for tok in TOKEN.findall(t.lower()) if tok not in STOP)
+def _clean(t:str) -> str:
+    t = re.sub(r"https?://\S+", " ", t)
+    t = re.sub(r"\b(bitcoin|btc|eth|crypto|ethereum)\b", " ", t, flags=re.I)
+    return re.sub(r"\s+", " ", t).strip().lower()
 
 class Clusterer:
-    def __init__(self, eps: float = 0.45, min_samples: int = 4):
-        self.model = SentenceTransformer(EMB_MODEL)
-        self.eps, self.min_samples = eps, min_samples
+    def __init__(self, min_cluster_size:int|None=None):
+        self.mcs = min_cluster_size
 
-    def cluster(self, texts: List[str]) -> Dict[int, List[int]]:
-        emb = self.model.encode([_clean(t) for t in texts],
-                                batch_size=64, normalize_embeddings=True)
-        labels = DBSCAN(eps=self.eps, min_samples=self.min_samples,
-                        metric="cosine").fit_predict(emb)
-        clusters: Dict[int, List[int]] = {}
-        for i, lab in enumerate(labels):
-            if lab == -1:  # bruit
-                continue
-            clusters.setdefault(lab, []).append(i)
+    def cluster(self, texts:List[str]) -> Dict[int, List[int]]:
+        if not texts:
+            return {}
+        mcs = self.mcs or max(3, int(0.01*len(texts)))   # 1 % du volume
+        log.info("Encodage SBERT… N=%d, min_cluster_size=%d", len(texts), mcs)
+        emb = _sbert.encode([_clean(t) for t in texts], normalize_embeddings=True)
+        cl = hdbscan.HDBSCAN(min_cluster_size=mcs, metric="euclidean").fit(emb)
+        clusters:dict[int,list[int]]={}
+        for idx,lab in enumerate(cl.labels_):
+            clusters.setdefault(int(lab),[]).append(idx)
+        clusters.pop(-1, None)
+        log.info("→ %d clusters", len(clusters))
         return clusters
