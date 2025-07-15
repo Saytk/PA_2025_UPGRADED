@@ -115,5 +115,42 @@ namespace Quantia.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        /*──────────────────────────────────────────────────────────*
+         * EDITION D'UNE POSITION
+         *──────────────────────────────────────────────────────────*/
+        // GET /Trade/Edit/5
+        [HttpGet("Edit/{id:int}")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var userId = CurrentUserId();
+            var trade = await _context.Trades
+                                       .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+            if (trade == null) return NotFound();
+            if (trade.Status == "Closed")   // déjà fermé : pas d’édition
+                return RedirectToAction(nameof(Index));
+
+            return View(trade);
+        }
+
+        // POST /Trade/Edit/5
+        [HttpPost("Edit/{id:int}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, TradeModel model)
+        {
+            var userId = CurrentUserId();
+            var trade = await _context.Trades
+                                       .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+            if (trade == null) return NotFound();
+            if (!ModelState.IsValid) return View(model);
+
+            // On ne modifie QUE les champs de sortie
+            trade.SellPrice = model.SellPrice;
+            trade.SellDate = DateTime.SpecifyKind(model.SellDate!.Value, DateTimeKind.Utc);
+            trade.Status = "Closed";
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
