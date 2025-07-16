@@ -60,8 +60,10 @@
             meaning: "Potential bullish reversal.",
             invalid: "Close below the Hammer low.",
             trading_suggestion: "Buy when price breaks above the Hammer high; invalidate if it closes back below the low.",
-            todo: "🔍 Trading suggestion : Lorsque tu repères un marteau (près d’un bas de tendance), attends que le prix dépasse le plus haut du marteau. Cela confirme qu’un rebond est en cours. ✅ Acheter (long) à ce seuil. ❌ Si la bougie suivante clôture sous le plus bas du marteau, annule le trade (stop loss). Place toujours ton stop juste sous ce plus bas. Source : plusieurs études (Investopedia, TrendSpider) confirment que le Hammer signale un retournement haussier fiable, surtout s’il est suivi par une bougie verte de confirmation."
-          },
+            todo: "🔍 Trading suggestion : Lorsque tu repères un marteau (près d’un bas de tendance), attends que le prix dépasse le plus haut du marteau. Cela confirme qu’un rebond est en cours. ✅ Acheter (long) à ce seuil. ❌ Si la bougie suivante clôture sous le plus bas du marteau, annule le trade (stop loss). Place toujours ton stop juste sous ce plus bas. Source : plusieurs études (Investopedia, TrendSpider) confirment que le Hammer signale un retournement haussier fiable, surtout s’il est suivi par une bougie verte de confirmation.",
+            strength: 0.60   // ~60% de réussite en moyenne
+
+        },
           CDLENGULFING: {
             name: "Engulfing",
             def: "Second candle completely engulfs the previous body.",
@@ -69,7 +71,8 @@
             invalid: "No follow-through within 2 bars.",
             trading_suggestion: "Trade the break of the Engulfing range — long above high (bullish) / short below low (bearish).",
             todo: "🔍 Trading suggestion : Quand une bougie englobe totalement la précédente, c’est un fort signal de retournement. Si c’est haussier, attends une cassure au-dessus du plus haut du motif, puis achète. Si c’est baissier, attends une cassure en dessous du plus bas, puis shorte. Place ton stop de l’autre côté du motif. Si rien ne se passe dans les deux bougies suivantes, considère le signal comme annulé."
-          },
+            ,strength: 0.63
+        },
           CDLSHOOTINGSTAR: {
             name: "Shooting Star",
             def: "Small body near low, long upper shadow.",
@@ -77,7 +80,9 @@
             invalid: "Close above the pattern high.",
             trading_suggestion: "Sell or short if price falls below the Shooting Star low; stop just above the high.",
             todo: "🔍 Trading suggestion : Après une étoile filante en haut d’une tendance, attends une cassure sous son plus bas pour confirmer le retournement baissier. ✅ Short ou vends à ce niveau. ❌ Mets un stop juste au-dessus du plus haut de l’étoile filante. Ce motif est bien documenté par Investopedia pour son signal fiable en inversant les mouvements haussiers."
-          },
+            ,strength: 0.59
+
+        },
           CDLHANGINGMAN: {
             name: "Hanging Man",
             def: "Hammer shape after an advance.",
@@ -85,7 +90,8 @@
             invalid: "Strong close above pattern high.",
             trading_suggestion: "Consider shorting after a bearish confirmation candle closes below the low.",
             todo: "🔍 Trading suggestion : Le Hanging Man indique une potentielle faiblesse après une hausse, mais n’agis qu’après confirmation. Attends une bougie baissière qui clôture en dessous du plus bas du Hanging Man. ✅ Alors seulement, short ou vends. ❌ Mets un stop juste au-dessus du plus haut du motif."
-          },
+            ,strength: 0.59
+        },
           CDLDOJI: {
             name: "Doji",
             def: "Open ≈ Close; shadows vary.",
@@ -93,7 +99,8 @@
             invalid: "Continuation breakout.",
             trading_suggestion: "Wait for breakout of the Doji’s high or low, then trade in that direction.",
             todo: "🔍 Trading suggestion : Un Doji montre que le marché hésite. Ne trade pas tout de suite. Attends la cassure soit au-dessus du plus haut, soit en dessous du plus bas du Doji. ✅ Si ça monte, achète ; si ça baisse, short ou vends. Place ton stop de l’autre côté du Doji."
-          },
+            ,strength: 0.50
+        },
           CDLMORNINGSTAR: {
             name: "Morning Star",
             def: "Bearish candle, pause, strong bullish close.",
@@ -101,7 +108,8 @@
             invalid: "Close below pattern low.",
             trading_suggestion: "Enter long at the close of the 3rd candle; stop under pattern low; first target = 2× risk.",
             todo: "🔍 Trading suggestion : Le Morning Star est un motif à trois bougies très fiable (environ 60 à 75 % de réussite selon LuxAlgo). Il faut : 1) une longue bougie baissière, 2) une petite bougie d’indécision, 3) une longue bougie haussière fermant au-dessus du milieu de la première. ✅ Achète à la clôture de la troisième bougie. ❌ Mets le stop juste sous le plus bas du motif. Objectif de profit : deux fois le risque."
-          },
+            ,strength: 0.78
+        },
           CDLEVENINGSTAR: {
             name: "Evening Star",
             def: "Bullish candle, pause, strong bearish close.",
@@ -109,7 +117,8 @@
             invalid: "Close above pattern high.",
             trading_suggestion: "Enter short at the close of the 3rd candle; stop above pattern high; first target = 2× risk.",
             todo: "🔍 Trading suggestion : L’Evening Star est l’inverse du Morning Star, avec un bon taux de succès (environ 70 % selon LuxAlgo). Il nécessite trois bougies : une longue haussière, une d’hésitation, une longue baissière. ✅ Short à la clôture de la troisième bougie. ❌ Stop juste au-dessus du plus haut du motif. Objectif : deux fois le risque."
-          },
+            ,strength: 0.72
+        },
           CDLPIERCING: {
             name: "Piercing Line",
             def: "Bullish candle opens below low, closes > 50 % into previous.",
@@ -117,7 +126,8 @@
             invalid: "Close below bullish candle low.",
             trading_suggestion: "Go long if price stays above the mid-body; stop below pattern low.",
             todo: "🔍 Trading suggestion : Ce motif en deux bougies indique souvent un renversement haussier à court terme. 1) une bougie baissière, puis 2) une bougie qui ouvre en gap baissier et ferme au-dessus du milieu de la première. ✅ Achète si le prix reste au-dessus du milieu. ❌ Stop sous le plus bas de la bougie haussière."
-          },
+            ,strength: 0.55
+        },
           CDLDARKCLOUDCOVER: {
             name: "Dark Cloud Cover",
             def: "Bearish candle opens above high, closes < 50 % into previous.",
@@ -125,7 +135,8 @@
             invalid: "Close above pattern high.",
             trading_suggestion: "Go short if price holds below the mid-body; stop above pattern high.",
             todo: "🔍 Trading suggestion : Le pendant baissier du Piercing Line. Après une bougie haussière, la suivante ouvre en gap haussier mais ferme sous le milieu de la première. ✅ Short ou vends si le prix reste sous ce milieu. ❌ Stop au-dessus du plus haut de la première bougie."
-          }
+            ,strength: 0.53
+        }
         };
 
 
@@ -265,45 +276,77 @@
             const tbody = qs('#patterns-body');
             tbody.innerHTML = '';
             annotations = [];
-
+            console.log((await (await fetch(endpoint)).json()).patterns_detected);
+            console.log(rows);
             /* ---------- 1. Table + annotations ---------- */
             if (mode === 'classic') {
-              rows.forEach(p => {
-                const meta = PATTERN_INFO[p.pattern_code] || {};
-                tbody.insertAdjacentHTML('beforeend', `
-                  <tr>
-                    <td>${fmtTime(p.timestamp)}</td>
-                    <td>${meta.name}</td>
-                    <td>${p.direction}</td>
-                    <td>${meta.def}</td>
-                  </tr>`);
+                rows.forEach(p => {
+                  const meta = PATTERN_INFO[p.pattern_code] || {};
+                  const dir = p.direction || 'neutral';
+                  const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
+                  const strengthPct = meta.strength ? Math.round(meta.strength * 100) : 'N/A';
 
-                annotations.push({
-                  x: parseUTC(p.timestamp).getTime(),
-                  borderColor: p.direction==='bullish' ? '#a5d6a7' : '#ef9a9a',
-                  label: { style:{background:'#fff'}, text: p.direction==='bullish' ? '📈' : '📉',orientation: 'horizontal' }
+                  tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                      <td>${fmtTime(p.timestamp)}</td>
+                      <td>${meta.name}</td>
+                      <td>${p.direction}</td>
+                      <td>${meta.def}</td>
+                    </tr>`
+                  );
+
+                  annotations.push({
+                    x: parseUTC(p.timestamp).getTime(),
+                    borderColor:
+                      dir==='bullish' ? '#a5d6a7' :
+                      dir==='bearish' ? '#ef9a9a' : '#b0bec5',
+                    label: {
+                      style: {
+                        background:'#fff',
+                        color:'#000',
+                        fontSize: '12px'
+                      },
+                      text: `${emoji} ${meta.name} (${strengthPct}%)`,
+                      orientation: 'horizontal'
+                    }
+                  });
                 });
-              });
+
             } else {
-              rows.forEach(p => {
-                tbody.insertAdjacentHTML('beforeend', `
-                  <tr>
-                    <td>${fmtTime(p.start_timestamp)}</td>
-                    <td>${fmtTime(p.end_timestamp)}</td>
-                    <td><code>${p.sequence.join(', ')}</code></td>
-                    <td>${p.direction}</td>
-                    <td>${p.bias.toFixed(3)}</td>
-                    <td>${(p.bullish_ratio*100).toFixed(1)}</td>
-                    <td>${(p.bearish_ratio*100).toFixed(1)}</td>
-                    <td>${(p.neutral_ratio*100).toFixed(1)}</td>
-                  </tr>`);
+                rows.forEach(p => {
+                  const dir = p.direction || 'neutral';
+                  const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
 
-                annotations.push({
-                  x: parseUTC(p.end_timestamp).getTime(),
-                  borderColor: p.direction==='bullish' ? '#a5d6a7' : '#ef9a9a',
-                  label: { style:{background:'#fff'}, text: p.direction==='bullish' ? '📈' : '📉' ,orientation: 'horizontal'}
+                  tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                      <td>${fmtTime(p.start_timestamp)}</td>
+                      <td>${fmtTime(p.end_timestamp)}</td>
+                      <td><code>${p.sequence.join(', ')}</code></td>
+                      <td>${p.direction}</td>
+                      <td>${p.bias.toFixed(3)}</td>
+                      <td>${(p.bullish_ratio*100).toFixed(1)}</td>
+                      <td>${(p.bearish_ratio*100).toFixed(1)}</td>
+                      <td>${(p.neutral_ratio*100).toFixed(1)}</td>
+                    </tr>`
+                  );
+
+                  annotations.push({
+                    x: parseUTC(p.end_timestamp).getTime(),
+                    borderColor:
+                      dir==='bullish' ? '#a5d6a7' :
+                      dir==='bearish' ? '#ef9a9a' : '#b0bec5',
+                    label: {
+                      style:{
+                        background:'#fff',
+                        color:'#000',
+                        fontSize: '12px'
+                      },
+                      text: `${emoji} ML bias ${(p.bias*100).toFixed(0)}%`,
+                      orientation: 'horizontal'
+                    }
+                  });
                 });
-              });
+
             }
 
             /* ---------- 2. Sélection du dernier pattern ---------- */
@@ -315,52 +358,58 @@
             }, null);
 
             /* ---------- 3. Banner ---------- */
-            const banner = qs('#pattern-summary');
-            if (last) {
-              const dir = last.direction || 'neutral';
-              banner.className = `alert mt-4 advice-${dir}`;
+        /* ---------- 3. Banner ---------- */
+        const banner = qs('#pattern-summary');
+        if (last) {
+          const dir = last.direction || 'neutral';
+          const meta = PATTERN_INFO[last.pattern_code] || {};
+          const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
+          const strengthPct = meta.strength ? Math.round(meta.strength * 100) : 'N/A';
 
-              if (mode === 'classic') {
-                const meta = PATTERN_INFO[last.pattern_code];
-                banner.innerHTML =
-                  `${dir==='bullish'?'📈':'📉'} ${meta.name} detected at ${fmtTime(last.timestamp)} — ${meta.meaning}`;
-              } else {
-                banner.innerHTML =
-                  `${dir==='bullish'?'📈':'📉'} Last ML pattern bias <strong>${last.bias.toFixed(2)}</strong>`;
-              }
-            } else {
-              banner.className = 'alert mt-4 advice-neutral';
-              banner.textContent = 'No pattern detected.';
-            }
+          if (mode === 'classic') {
+            banner.className = `alert mt-4 advice-${dir}`;
+            banner.innerHTML =
+              `${emoji} <strong>${meta.name}</strong> detected at ${fmtTime(last.timestamp)}<br>` +
+              `${meta.meaning} — <em>Fiabilité théorique: ${strengthPct}%</em>`;
+          } else {
+            banner.innerHTML =
+              `${emoji} Last ML pattern bias <strong>${last.bias.toFixed(2)}</strong>`;
+          }
+        } else {
+          banner.className = 'alert mt-4 advice-neutral';
+          banner.textContent = 'No pattern detected.';
+        }
 
-            /* ---------- 4. Decision assistant ---------- */
-            const box = qs('#decision-assistant');
-            if (last) {
-              const dir   = last.direction || 'neutral';
-              const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
-              let html = '';
+        /* ---------- 4. Decision assistant ---------- */
+        const box = qs('#decision-assistant');
+        if (last) {
+          const dir = last.direction || 'neutral';
+          const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
+          const meta = PATTERN_INFO[last.pattern_code] || {};
+          const strengthPct = meta.strength ? Math.round(meta.strength * 100) : 'N/A';
 
-              if (mode === 'classic') {
-                const meta = PATTERN_INFO[last.pattern_code];
-                    html += `
-                    <p>${emoji} <strong>${meta.name} (${dir})</strong></p>
-                    <p class="mb-1">${meta.def}</p>
-                    <em>${meta.meaning}</em><br>
-                    <small>Invalidation: ${meta.invalid}</small>
-                    <p class="fw-bold mt-2">${meta.trading_suggestion}</p>
-                    <p>${meta.todo}</p>`;
-              } else {
-                html += `
-                  <p>${emoji} <strong>${dir==='bullish'?'bullish':'bearish'} signal</strong></p>
-                  <p class="mb-1">Bias: ${last.bias.toFixed(2)}</p>
-                  <p class="mb-1">Seq: <code>${last.sequence.join(', ')}</code></p>
-                  <p class="fw-bold mt-2">${genericAdvice(dir)}</p>`;
-              }
+          let html = '';
 
-              box.innerHTML = html;
-            } else {
-              box.innerHTML = '<p class="text-muted">No actionable signal…</p>';
-            }
+          if (mode === 'classic') {
+            html += `
+              <p>${emoji} <strong>${meta.name} (${dir})</strong> – Fiabilité : ${strengthPct}%</p>
+              <p class="mb-1">${meta.def}</p>
+              <em>${meta.meaning}</em><br>
+              <small>Invalidation: ${meta.invalid}</small>
+              <p class="fw-bold mt-2">${meta.trading_suggestion}</p>
+              <p>${meta.todo}</p>`;
+          } else {
+            html += `
+              <p>${emoji} <strong>${dir==='bullish'?'bullish':'bearish'} signal</strong></p>
+              <p class="mb-1">Bias: ${last.bias.toFixed(2)}</p>
+              <p class="mb-1">Seq: <code>${last.sequence.join(', ')}</code></p>
+              <p class="fw-bold mt-2">${genericAdvice(dir)}</p>`;
+          }
+
+          box.innerHTML = html;
+        } else {
+          box.innerHTML = '<p class="text-muted">No actionable signal…</p>';
+        }
 
             /* ---------- 5. Update chart ---------- */
             loadCandlestickData();
