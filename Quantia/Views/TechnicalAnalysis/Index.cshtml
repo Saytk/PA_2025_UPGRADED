@@ -35,7 +35,7 @@
             <div class="col-md-2"><label class="form-label mb-0">Symbol</label><select id="symbolSelect" class="form-select"><option value="BTCUSDT">Bitcoin</option><option value="ETHUSDT">Ethereum</option></select></div>
             <div class="col-md-2"><label class="form-label mb-0">Start</label><input type="datetime-local" id="startDate" class="form-control"></div>
             <div class="col-md-2"><label class="form-label mb-0">End</label><input type="datetime-local" id="endDate" class="form-control"></div>
-            <div class="col-md-2"><label class="form-label mb-0">Pattern source</label><select id="patternMode" class="form-select"><option value="ml">ML (Sequences)</option><option value="classic">Classic (Candlestick)</option></select></div>
+            <div class="col-md-2"><label class="form-label mb-0">Pattern source</label><select id="patternMode" class="form-select"><option value="classic">Classic (Candlestick)</option><option value="ml">ML (Sequences)</option></select></div>
             <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Refresh</button></div>
         </form>
 
@@ -55,69 +55,80 @@
            ========================================================= */
         const PATTERN_INFO = {
           CDLHAMMER: {
-            name   : "Hammer",
-            def    : "Small body near top, long lower shadow (≥ 2× body).",
+            name: "Hammer",
+            def: "Small body near top, long lower shadow (≥ 2× body).",
             meaning: "Potential bullish reversal.",
             invalid: "Close below the Hammer low.",
-            todo   : "Buy when price breaks above the Hammer high; invalidate if it closes back below the low."
+            trading_suggestion: "Buy when price breaks above the Hammer high; invalidate if it closes back below the low.",
+            todo: "🔍 Trading suggestion : Lorsque tu repères un marteau (près d’un bas de tendance), attends que le prix dépasse le plus haut du marteau. Cela confirme qu’un rebond est en cours. ✅ Acheter (long) à ce seuil. ❌ Si la bougie suivante clôture sous le plus bas du marteau, annule le trade (stop loss). Place toujours ton stop juste sous ce plus bas. Source : plusieurs études (Investopedia, TrendSpider) confirment que le Hammer signale un retournement haussier fiable, surtout s’il est suivi par une bougie verte de confirmation."
           },
           CDLENGULFING: {
-            name   : "Engulfing",
-            def    : "Second candle completely engulfs the previous body.",
+            name: "Engulfing",
+            def: "Second candle completely engulfs the previous body.",
             meaning: "Reversal: bullish (+) or bearish (–).",
             invalid: "No follow-through within 2 bars.",
-            todo   : "Trade the break of the Engulfing range — long above high (bullish) / short below low (bearish)."
+            trading_suggestion: "Trade the break of the Engulfing range — long above high (bullish) / short below low (bearish).",
+            todo: "🔍 Trading suggestion : Quand une bougie englobe totalement la précédente, c’est un fort signal de retournement. Si c’est haussier, attends une cassure au-dessus du plus haut du motif, puis achète. Si c’est baissier, attends une cassure en dessous du plus bas, puis shorte. Place ton stop de l’autre côté du motif. Si rien ne se passe dans les deux bougies suivantes, considère le signal comme annulé."
           },
           CDLSHOOTINGSTAR: {
-            name   : "Shooting Star",
-            def    : "Small body near low, long upper shadow.",
+            name: "Shooting Star",
+            def: "Small body near low, long upper shadow.",
             meaning: "Potential bearish reversal.",
             invalid: "Close above the pattern high.",
-            todo   : "Sell / short if price falls below the Shooting-Star low; stop just above the high."
+            trading_suggestion: "Sell or short if price falls below the Shooting Star low; stop just above the high.",
+            todo: "🔍 Trading suggestion : Après une étoile filante en haut d’une tendance, attends une cassure sous son plus bas pour confirmer le retournement baissier. ✅ Short ou vends à ce niveau. ❌ Mets un stop juste au-dessus du plus haut de l’étoile filante. Ce motif est bien documenté par Investopedia pour son signal fiable en inversant les mouvements haussiers."
           },
           CDLHANGINGMAN: {
-            name   : "Hanging Man",
-            def    : "Hammer shape after an advance.",
+            name: "Hanging Man",
+            def: "Hammer shape after an advance.",
             meaning: "Bearish warning – needs confirmation.",
             invalid: "Strong close above pattern high.",
-            todo   : "Consider shorting after a bearish confirmation candle closes below the low."
+            trading_suggestion: "Consider shorting after a bearish confirmation candle closes below the low.",
+            todo: "🔍 Trading suggestion : Le Hanging Man indique une potentielle faiblesse après une hausse, mais n’agis qu’après confirmation. Attends une bougie baissière qui clôture en dessous du plus bas du Hanging Man. ✅ Alors seulement, short ou vends. ❌ Mets un stop juste au-dessus du plus haut du motif."
           },
           CDLDOJI: {
-            name   : "Doji",
-            def    : "Open ≈ Close; shadows vary.",
+            name: "Doji",
+            def: "Open ≈ Close; shadows vary.",
             meaning: "Indecision – wait for breakout.",
             invalid: "Continuation breakout.",
-            todo   : "Wait for breakout of the Doji’s high or low, then trade in that direction."
+            trading_suggestion: "Wait for breakout of the Doji’s high or low, then trade in that direction.",
+            todo: "🔍 Trading suggestion : Un Doji montre que le marché hésite. Ne trade pas tout de suite. Attends la cassure soit au-dessus du plus haut, soit en dessous du plus bas du Doji. ✅ Si ça monte, achète ; si ça baisse, short ou vends. Place ton stop de l’autre côté du Doji."
           },
           CDLMORNINGSTAR: {
-            name   : "Morning Star",
-            def    : "Bearish candle, pause, strong bullish close.",
+            name: "Morning Star",
+            def: "Bearish candle, pause, strong bullish close.",
             meaning: "Reliable bullish reversal.",
             invalid: "Close below pattern low.",
-            todo   : "Enter long at the close of the 3rd candle; stop under pattern low; first target = 2× risk."
+            trading_suggestion: "Enter long at the close of the 3rd candle; stop under pattern low; first target = 2× risk.",
+            todo: "🔍 Trading suggestion : Le Morning Star est un motif à trois bougies très fiable (environ 60 à 75 % de réussite selon LuxAlgo). Il faut : 1) une longue bougie baissière, 2) une petite bougie d’indécision, 3) une longue bougie haussière fermant au-dessus du milieu de la première. ✅ Achète à la clôture de la troisième bougie. ❌ Mets le stop juste sous le plus bas du motif. Objectif de profit : deux fois le risque."
           },
           CDLEVENINGSTAR: {
-            name   : "Evening Star",
-            def    : "Bullish candle, pause, strong bearish close.",
+            name: "Evening Star",
+            def: "Bullish candle, pause, strong bearish close.",
             meaning: "Reliable bearish reversal.",
             invalid: "Close above pattern high.",
-            todo   : "Enter short at the close of the 3rd candle; stop above pattern high; first target = 2× risk."
+            trading_suggestion: "Enter short at the close of the 3rd candle; stop above pattern high; first target = 2× risk.",
+            todo: "🔍 Trading suggestion : L’Evening Star est l’inverse du Morning Star, avec un bon taux de succès (environ 70 % selon LuxAlgo). Il nécessite trois bougies : une longue haussière, une d’hésitation, une longue baissière. ✅ Short à la clôture de la troisième bougie. ❌ Stop juste au-dessus du plus haut du motif. Objectif : deux fois le risque."
           },
           CDLPIERCING: {
-            name   : "Piercing Line",
-            def    : "Bullish candle opens below low, closes > 50 % into previous.",
+            name: "Piercing Line",
+            def: "Bullish candle opens below low, closes > 50 % into previous.",
             meaning: "Near-term upside reversal.",
             invalid: "Close below bullish candle low.",
-            todo   : "Go long if price stays above the mid-body; stop below pattern low."
+            trading_suggestion: "Go long if price stays above the mid-body; stop below pattern low.",
+            todo: "🔍 Trading suggestion : Ce motif en deux bougies indique souvent un renversement haussier à court terme. 1) une bougie baissière, puis 2) une bougie qui ouvre en gap baissier et ferme au-dessus du milieu de la première. ✅ Achète si le prix reste au-dessus du milieu. ❌ Stop sous le plus bas de la bougie haussière."
           },
           CDLDARKCLOUDCOVER: {
-            name   : "Dark Cloud Cover",
-            def    : "Bearish candle opens above high, closes < 50 % into previous.",
+            name: "Dark Cloud Cover",
+            def: "Bearish candle opens above high, closes < 50 % into previous.",
             meaning: "Potential downside reversal.",
-            invalid: "Close above bearish candle high.",
-            todo   : "Go short if price holds below the mid-body; stop above pattern high."
+            invalid: "Close above pattern high.",
+            trading_suggestion: "Go short if price holds below the mid-body; stop above pattern high.",
+            todo: "🔍 Trading suggestion : Le pendant baissier du Piercing Line. Après une bougie haussière, la suivante ouvre en gap haussier mais ferme sous le milieu de la première. ✅ Short ou vends si le prix reste sous ce milieu. ❌ Stop au-dessus du plus haut de la première bougie."
           }
         };
+
+
 
         /* =========================================================
            2)  Helpers & state
@@ -204,10 +215,23 @@
            4)  Generic fallback advice
            ========================================================= */
         function genericAdvice(d) {
-          if (d === 'bullish')  return 'Consider long entries or scaling out of shorts.';
-          if (d === 'bearish')  return 'Consider profit-taking or short setups.';
-          return 'Wait for confirmation.';
+          const dir = (d || '').toLowerCase();
+
+          if (dir === 'bullish') return `🔺 Signal haussier détecté : Ce mouvement suggère un potentiel rebond ou une poursuite de la hausse.
+        ✅ Envisage d’acheter ou de renforcer une position longue après une cassure confirmée.
+        ❌ Annule le scénario si le prix retombe sous le dernier support clé.
+        💡 Cherche une confirmation avec un volume en hausse ou des indicateurs haussiers (ex. RSI > 50).`;
+
+          if (dir === 'bearish') return `🔻 Signal baissier détecté : Ce mouvement indique une possible pression vendeuse ou un retournement à la baisse.
+        ✅ Envisage un short ou de prendre des bénéfices sur tes positions longues après une cassure confirmée.
+        ❌ Annule le scénario si le prix remonte au-dessus de la dernière résistance clé.
+        💡 Cherche une confirmation avec un volume vendeur en hausse ou des indicateurs baissiers (ex. RSI < 50).`;
+
+          return "⏸️ Aucun signal clair détecté. Patiente pour une meilleure configuration.";
         }
+
+
+        
 
         /* =========================================================
            5)  Build table header
@@ -318,15 +342,16 @@
 
               if (mode === 'classic') {
                 const meta = PATTERN_INFO[last.pattern_code];
-                html += `
-                  <p>${emoji} <strong>${meta.name} (${dir})</strong></p>
-                  <p class="mb-1">${meta.def}</p>
-                  <em>${meta.meaning}</em><br>
-                  <small>Invalidation: ${meta.invalid}</small>
-                  <p class="fw-bold mt-2">${meta.todo}</p>`;
+                    html += `
+                    <p>${emoji} <strong>${meta.name} (${dir})</strong></p>
+                    <p class="mb-1">${meta.def}</p>
+                    <em>${meta.meaning}</em><br>
+                    <small>Invalidation: ${meta.invalid}</small>
+                    <p class="fw-bold mt-2">${meta.trading_suggestion}</p>
+                    <p>${meta.todo}</p>`;
               } else {
                 html += `
-                  <p>${emoji} <strong>${dir==='bullish'?'Bullish':'Bearish'} signal</strong></p>
+                  <p>${emoji} <strong>${dir==='bullish'?'bullish':'bearish'} signal</strong></p>
                   <p class="mb-1">Bias: ${last.bias.toFixed(2)}</p>
                   <p class="mb-1">Seq: <code>${last.sequence.join(', ')}</code></p>
                   <p class="fw-bold mt-2">${genericAdvice(dir)}</p>`;
