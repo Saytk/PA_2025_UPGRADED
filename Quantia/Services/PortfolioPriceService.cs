@@ -12,7 +12,7 @@ namespace Quantia.Services
     public class PortfolioPriceService
     {
         private readonly HttpClient _http;
-        private const string API = "http://localhost:8000";
+        private const string API = "https://api-test-049u.onrender.com";
 
         public PortfolioPriceService(IHttpClientFactory factory)
             => _http = factory.CreateClient();

@@ -12,14 +12,14 @@ namespace Quantia.Controllers
     public class CandlestickController : ControllerBase
     {
         private readonly HttpClient _httpClient;
-        private readonly string _backendBaseUrl;   // ex. "http://127.0.0.1:8000"
+        private readonly string _backendBaseUrl;  
 
         public CandlestickController(IHttpClientFactory httpClientFactory,
                                      IConfiguration config)
         {
             _httpClient = httpClientFactory.CreateClient();
             _backendBaseUrl = config["BackendBaseUrl"]?.TrimEnd('/')
-                                ?? "http://127.0.0.1:8000";
+                                ?? "https://api-test-049u.onrender.com";
         }
 
         /* ------------------------------------------------------------
