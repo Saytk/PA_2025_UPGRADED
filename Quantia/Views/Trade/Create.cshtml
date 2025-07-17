@@ -46,5 +46,51 @@
         <button type="submit" class="btn btn-primary mt-3">Start Trade</button>
     </div>
 
+    <script>
+        function localToUtcStr(localStr) {
+          return new Date(localStr).toISOString().slice(0,16);   // trims seconds+Z
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+
+            // Récupère la valeur sélectionnée
+            const symbol = document.querySelector('#symbolSelect').value;
+
+            // Récupère la date de départ en local
+            const buyDateInput = document.querySelector('#BuyDate').value;
+
+            // Convertit en objet Date
+            let startDate = new Date(buyDateInput);
+
+            // Ajoute 1 jour
+            let endDate = new Date(startDate);
+
+            // Convertit les deux dates en format ISO (UTC)
+            const start = localToUtcStr(startDate);
+            const end = localToUtcStr(endDate);
+
+            // Construit l'URL avec les dates UTC
+            const url = `https://api-test-049u.onrender.com/pattern/load-data?symbol=${symbol}&start_date=${start}&end_date=${end}`;
+
+            try {
+                const response = await fetch(url);
+                const json = await response.json();
+                            if (json.data && json.data.length > 0) {
+                const closePrice = json.data[0].close;
+                console.log("Close price:", closePrice);
+
+                // Injecte la valeur dans le champ BuyPrice
+                document.querySelector('[name="BuyPrice"]').value = closePrice;
+            } else {
+                console.warn("Pas de données dans la réponse API");
+            }
+
+            } catch (error) {
+                console.error("Erreur lors du fetch :", error);
+            }
+        });
+
+    </script>
+
 </form>
 
