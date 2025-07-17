@@ -228,17 +228,11 @@
         function genericAdvice(d) {
           const dir = (d || '').toLowerCase();
 
-          if (dir === 'bullish') return `🔺 Signal haussier détecté : Ce mouvement suggère un potentiel rebond ou une poursuite de la hausse.
-        ✅ Envisage d’acheter ou de renforcer une position longue après une cassure confirmée.
-        ❌ Annule le scénario si le prix retombe sous le dernier support clé.
-        💡 Cherche une confirmation avec un volume en hausse ou des indicateurs haussiers (ex. RSI > 50).`;
+          if (dir === 'bullish') return `📈 Potentiel mouvement haussier. Attends une confirmation avant d’acheter. Place un stop si le prix revient sous la zone de signal.`;
 
-          if (dir === 'bearish') return `🔻 Signal baissier détecté : Ce mouvement indique une possible pression vendeuse ou un retournement à la baisse.
-        ✅ Envisage un short ou de prendre des bénéfices sur tes positions longues après une cassure confirmée.
-        ❌ Annule le scénario si le prix remonte au-dessus de la dernière résistance clé.
-        💡 Cherche une confirmation avec un volume vendeur en hausse ou des indicateurs baissiers (ex. RSI < 50).`;
+          if (dir === 'bearish') return `📉 Potentiel mouvement baissier. Attends une confirmation avant de vendre. Place un stop si le prix repasse au-dessus de la zone de signal.`;
 
-          return "⏸️ Aucun signal clair détecté. Patiente pour une meilleure configuration.";
+          return "⏸️ Indécision. Attends que le marché montre une direction claire avant d’agir.";
         }
 
 
@@ -357,7 +351,6 @@
               return t2 > t1 ? cur : acc;
             }, null);
 
-            /* ---------- 3. Banner ---------- */
         /* ---------- 3. Banner ---------- */
         const banner = qs('#pattern-summary');
         if (last) {
@@ -365,9 +358,9 @@
           const meta = PATTERN_INFO[last.pattern_code] || {};
           const emoji = dir==='bullish' ? '📈' : dir==='bearish' ? '📉' : '⏸️';
           const strengthPct = meta.strength ? Math.round(meta.strength * 100) : 'N/A';
+          banner.className = `alert mt-4 advice-${dir}`;
 
           if (mode === 'classic') {
-            banner.className = `alert mt-4 advice-${dir}`;
             banner.innerHTML =
               `${emoji} <strong>${meta.name}</strong> detected at ${fmtTime(last.timestamp)}<br>` +
               `${meta.meaning} — <em>Fiabilité théorique: ${strengthPct}%</em>`;
