@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "quantia-develop",
+  "private_key_id": "b6fd26e237d2209dd73caf4f990ce14b3f5a6780",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC2+09Xu0/NHRjM\n88cfKvPON21vd1dSuNgHXO3dfIx9qfAgW39v8fI39SQZbu4o1cz8FddjLq0alslD\nVMccy/BqEt1HLv2D3Fhc3Qo0xf9N2TiaDr2pgpF1bSgs/AFzytMXox7EUNMLzl4i\n/qsvGyVz3hC5T0nkKWIY3SHVZbB+szVzXfCEtCXlN2jk8eaxTu6C/L1jS0UvFj/T\nlRLHmcGDq7c7t0oSBpeAYqRjJnkwhSgp6k0grw5yTmKP3YnaDe3miav1pXye+e1U\n3s3NtUn6ue/WIoWr5mMJc3iKjj6sNJaXCU5bSNIgLnPpxTqHWobEHF0/CC/MHN8n\nLqNU/DF5AgMBAAECggEABq0sQ7P4sS/82euSKiO30iApHM5SsBjA/yHHpxN2j9Y9\nxfx4raW7FAoch1YKGBDXAiKs4XhQRh5W2R9UhYs2ajRmgQSoqOFHExpYlzzbOCSz\nIUHk7zStqIZzVxLZ3bb6lUv1IS4eyTk+K5I1vkoEB5KEczJ+rHXLF8OnyqDDfBfv\nh2PzSc1JJ+yIo6QcXUDys/VRooCDzW/Ce+wckzv8d3UBxaDvayVPjsddu/fh2JNU\n7Nd8v/4qixosH4o2REmxCr3kWDCT85DUATvEEHGfkclfjWU3K6RHC9W5t+3xwNDM\nR9XgFmSx+4Jl01/HuGLTsc6ycdxmuXa05bitcYAEQQKBgQDof9/dn/ufT/C0WVhJ\ncQ+iUc0xKwMuatgwKni95Ei9MZMSBaqyj5d3j0RZvrwBWRDHtKC/xtyIe45ScHaf\nhLo8UmZR/aAEQ5NNGpCGxvXtSlTzfxfhsbSxgJZMD4te6Y2osG39/njiib26Oj87\nTm2nJq4ILe0mqT08N3cKcCYc4QKBgQDJeh5tD9tZuwUt+5TnNw95fL0lu2I0eubY\nUcTJOMt+zMlRgTwKL4VKYWAvCg3Uh92PaSwnuqoUIjE5jskiUvnkHd+8WG86MfCd\nYlfGDcQ0eNaJcGmDQoselj5nDQT+4tgO4wfFWNj+2R91wXGzFkmMqH8Ib0B/Gcf3\nCZA8dTvPmQKBgQDgZnuVltHvg+KYzxsNV1h1nGplqFQbuvgKFRQQg4NJR83hOSL1\n0O2qcdbQn+0ph+NQPSBhuPglqstE+lMjx6FQk186h4aoVuiXJKqVyvaWHoY7tlFA\nfpoeMDPgGai05MrbI94lpjTawYMjeRCKlznyeLzEHD+mbvYxZn84zeGbQQKBgQCy\n3a2BWWB9KuGQTxeEpYchbbJmexLWUH38catokPloGtpnd3ob+NA2lnhTinN4yR3T\noaVHqBoyQaC93puF03ByKmtkxIYKfieFMbeG5tXXV6fu4FNr6nmjr/K6ff5/Ylg5\n7ygI9bW/mnapjhEo0pJ9Q2Fz1YDG1daG5ICei92LkQKBgQDSJoS0M++hLLAVD9Z2\nyUb5yBOKESNQaTcFF3A6MLcvmM7Bq/CRSDl2L8ZfVF6jRmojb/3Wg7xBc/Uh2LE5\n8ZL16EtnPZNjTxPx6gHsfVQW/Y9t7rZT2/M5yScoqTPGT4Sr66SlALumnXivDrWK\nrq7K72FP/9LPoAFcT+0/ojjj1Q==\n-----END PRIVATE KEY-----\n",
+  "client_email": "cloudsql-proxy@quantia-develop.iam.gserviceaccount.com",
+  "client_id": "112325704436026333809",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/cloudsql-proxy%40quantia-develop.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
