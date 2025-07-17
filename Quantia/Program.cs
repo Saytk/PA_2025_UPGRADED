@@ -50,7 +50,7 @@ builder.Services.AddAntiforgery(options =>
 // ──────────────────────────────
 builder.Services.AddHttpClient("MLApi", client =>
 {
-    client.BaseAddress = new Uri("http://127.0.0.1:8000");
+    client.BaseAddress = new Uri("https://api-test-049u.onrender.com");
 });
 builder.Services.AddHttpClient("LocalAPI", client =>
 {
