@@ -195,6 +195,7 @@
             border: 1px solid var(--border);
             word-break: break-word
         }
+            /* on neutralise l’ancienne couleur verte/rouge */
             .topic.bullish, .topic.bearish {
                 border-color: inherit
             }
@@ -316,7 +317,7 @@
                     </div>
 
                     <div class="card" style="position:relative">
-                        <h2 style="margin:0 0 14px;font-size:1.15rem">Price + Sentiment</h2>
+                        <h2 style="margin:0 0 14px;font-size:1.15rem">Score history</h2>
                         <canvas id="sentChart"></canvas>
                         <div id="infoCard" class="card"></div>
                     </div>
@@ -363,6 +364,7 @@
 
         const apiHist = (from, to) => {
             if (from && to) return fetch(`/api/sentiment/history?from=${from}T00:00:00Z&to=${to}T23:59:59Z`).then(r => r.json());
+            /* 720 h = 30 j */
             return fetch(`/api/sentiment/history?hours=720`).then(r => r.json());
         };
         const apiDet = ts => fetch(`/api/sentiment/detail?ts=${encodeURIComponent(ts)}`).then(r => r.ok ? r.json() : null);
@@ -384,49 +386,150 @@
         let asset = 'btc';
         const assetSel = document.getElementById('assetSel');
         const loadBtn = document.getElementById('loadBtn');
-        async function loadAndDraw() {
+                async function loadAndDraw() {
             asset = assetSel.value;
             const from = dateFrom.value, to = dateTo.value;
             const rows = await apiHist(from, to);
-            pts = rows.map(h => ({ x: new Date(h.ts), y: asset === 'btc' ? h.price_btc : h.price_eth, score: h.score }))
-                .filter(p => p.y && !isNaN(p.x));
+
+            pts = rows.map(h => ({
+                x: new Date(h.ts),
+                y: asset === 'btc' ? h.price_btc : h.price_eth,
+                score: h.score
+            })).filter(p => p.y && !isNaN(p.x));
+
+            const sentChart = document.getElementById('sentChart');
+            const infoCard = document.getElementById('infoCard');
+
+            if (pts.length === 0) {
+                sentChart.style.display = 'none';
+                infoCard.style.display = 'none';
+
+                if (!document.getElementById('noData')) {
+                    const noDataMsg = document.createElement('div');
+                    noDataMsg.id = 'noData';
+                    noDataMsg.textContent = 'Aucune donnée disponible pour la période sélectionnée.';
+                    noDataMsg.style.padding = '20px';
+                    noDataMsg.style.color = '#555';
+                    noDataMsg.style.fontStyle = 'italic';
+                    sentChart.parentElement.appendChild(noDataMsg);
+                }
+
+                return;
+            }
+
+            const existingMsg = document.getElementById('noData');
+            if (existingMsg) existingMsg.remove();
+            sentChart.style.display = 'block';
+
             col = pts.map(p => fgCol(p.score));
 
+            // ➕ Mise à jour du Fear & Greed Index et des topics
+            const last = pts[pts.length - 1];
+            const lastScore = last.score;
+            const lastTs = last.x.toISOString();
+
+            const fg = Math.round(lastScore * 100);
+            const fgColor = fg <= 25 ? "#8b0000"
+                          : fg < 46 ? "#ff8c00"
+                          : fg < 54 ? "#ffd700"
+                          : fg < 75 ? "#90ee90"
+                          : "#00c853";
+            const fgLabel = fg <= 25 ? "Extreme Fear"
+                          : fg < 46 ? "Fear"
+                          : fg < 54 ? "Neutral"
+                          : fg < 75 ? "Greed"
+                          : "Extreme Greed";
+
+            document.querySelector('.fg-point').style.left = `${fg}%`;
+            const fgVal = document.querySelector('.fg-val');
+            fgVal.textContent = `${fg}/100`;
+            fgVal.style.color = fgColor;
+            const fgLabelElem = document.querySelector('.fg-label');
+            fgLabelElem.innerHTML = `Now : <strong>${fgLabel}</strong>`;
+            fgLabelElem.style.color = fgColor;
+
+            const j = await apiDet(lastTs);
+            if (j && j.clusters) {
+                base = j.clusters;
+                clusters = [...base];
+                searchTerm = '';
+                searchBox.value = '';
+                render();
+            }
+
             if (!chart) {
-                chart = new Chart(document.getElementById('sentChart'), {
+                chart = new Chart(sentChart, {
                     type: 'scatter',
                     data: {
                         datasets: [{
-                            data: pts, pointRadius: 5, pointBackgroundColor: col, pointBorderColor: col,
-                            showLine: true, borderColor: '#000', borderWidth: .5, tension: .15, order: 1
+                            data: pts,
+                            pointRadius: 5,
+                            pointBackgroundColor: col,
+                            pointBorderColor: col,
+                            showLine: true,
+                            borderColor: '#000',
+                            borderWidth: 0.5,
+                            tension: 0.15,
+                            order: 1
                         }]
                     },
                     options: {
                         plugins: {
                             legend: { display: false },
                             tooltip: {
-                                displayColors: false, backgroundColor: ctx => col[ctx.tooltip.dataPoints[0].dataIndex],
+                                displayColors: false,
+                                backgroundColor: ctx => col[ctx.tooltip.dataPoints[0].dataIndex],
                                 callbacks: {
-                                    title: ctx => new Date(ctx[0].parsed.x).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
-                                    label: ctx => [`Price : $${ctx.parsed.y.toFixed(2)}`, `Score : ${pts[ctx.dataIndex].score.toFixed(3)}`]
+                                    title: ctx => new Date(ctx[0].parsed.x).toLocaleString('en-GB', {
+                                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                    }),
+                                    label: ctx => [
+                                        `Price : $${ctx.parsed.y.toFixed(2)}`,
+                                        `Score : ${pts[ctx.dataIndex].score.toFixed(3)}`
+                                    ]
                                 }
                             }
                         },
                         scales: {
                             x: {
-                                type: 'time', time: { unit: 'hour', tooltipFormat: 'dd MMM HH:mm' },
-                                ticks: { autoSkip: false, callback: function (val) { const d = new Date(this.getLabelForValue(val)); return d.getUTCHours() === 0 ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : ''; } }, title: { display: true, text: 'Date (UTC)' }
+                                type: 'time',
+                                time: { unit: 'hour', tooltipFormat: 'dd MMM HH:mm' },
+                                ticks: {
+                                    autoSkip: false,
+                                    callback: function (val) {
+                                        const d = new Date(this.getLabelForValue(val));
+                                        return d.getUTCHours() === 0
+                                            ? d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                                            : '';
+                                    }
+                                },
+                                title: { display: true, text: 'Date (UTC)' }
                             },
-                            y: { title: { display: true, text: 'Price (USD)' }, beginAtZero: false }
+                            y: {
+                                title: { display: true, text: 'Price (USD)' },
+                                beginAtZero: false
+                            }
                         },
                         onClick: async (_, els) => {
                             if (!els.length) return;
-                            const idx = els[0].index, x = pts[idx].x;
-                            const ic = document.getElementById('infoCard');
-                            ic.style.display = 'block';
-                            ic.innerHTML = `<strong>${x.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${x.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</strong><br>Price : $${pts[idx].y.toFixed(2)}<br>Score : ${pts[idx].score.toFixed(3)}`;
+                            const idx = els[0].index;
+                            const x = pts[idx].x;
+
+                            infoCard.style.display = 'block';
+                            infoCard.innerHTML = `<strong>${x.toLocaleDateString('en-GB', {
+                                day: '2-digit', month: 'short'
+                            })} ${x.toLocaleTimeString('en-GB', {
+                                hour: '2-digit', minute: '2-digit'
+                            })}</strong><br>Price : $${pts[idx].y.toFixed(2)}<br>Score : ${pts[idx].score.toFixed(3)}`;
+
                             const j = await apiDet(x.toISOString());
-                            if (j && j.clusters) { base = j.clusters; clusters = [...base]; searchTerm = ''; searchBox.value = ''; render(); }
+                            if (j && j.clusters) {
+                                base = j.clusters;
+                                clusters = [...base];
+                                searchTerm = '';
+                                searchBox.value = '';
+                                render();
+                            }
                         }
                     }
                 });
@@ -440,6 +543,7 @@
         loadBtn.onclick = loadAndDraw;
         assetSel.onchange = loadAndDraw;
         window.addEventListener('DOMContentLoaded', loadAndDraw);
+        setInterval(loadAndDraw, 60000)
 
         /* ---------- TOPICS ----------------------------------- */
         let base = @Html.Raw(clustersJson), clusters = [...base];
@@ -457,10 +561,11 @@
 
         function highlight(html, term) { if (!term) return html; const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return html.replace(new RegExp(esc, 'gi'), m => `<mark class="hit">${m}</mark>`); }
 
+        /* *****  NOUVELLE version 100 % couleur ***** */
         function topicCard(c, norm) {
             const pct = (Math.abs(c.delta) / norm * 100).toFixed(1);
             const delta = `${c.delta > 0 ? '+' : ''}${c.delta.toFixed(3)}`;
-            const col = fgCol(c.avg || 0);                
+            const col = fgCol(c.avg || 0);                 // ← couleur continue
             const msgs = c.fullMessages?.length ? c.fullMessages : (c.examples || []);
             const urls = c.urls || [];
             let blocks = '';
