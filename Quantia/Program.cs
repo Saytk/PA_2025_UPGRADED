@@ -22,7 +22,9 @@ builder.Services.AddScoped<SentimentService>();
 builder.Services.AddScoped<PortfolioEquityService>();
 builder.Services.AddHttpClient<TradeSuggestionService>();
 builder.Services.AddScoped<TradeSuggestionService>();
-
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICryptoPriceService, CryptoPriceService>();
+builder.Services.AddScoped<PortfolioPriceService>();
 
 // Sessions
 builder.Services.AddSession();
@@ -106,10 +108,6 @@ builder.Services.AddHttpClient("LocalAPI", client =>
         : "http://localhost:7248";      // Port développement
     client.BaseAddress = new Uri(baseUrl);
 });
-
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICryptoPriceService, CryptoPriceService>();
-builder.Services.AddScoped<PortfolioPriceService>();
 
 // ──────────────────────────────
 // BUILD & PIPELINE
