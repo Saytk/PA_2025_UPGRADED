@@ -16,7 +16,7 @@ public class CryptoPriceService : ICryptoPriceService
     {
         try
         {
-            var url = $"https://api-test-049u.onrender.com/data/{symbol}?days=1&interval=1m";
+            var url = $"http://127.0.0.1:8000/data/{symbol}?days=1&interval=1m";
             var json = await _http.GetFromJsonAsync<dynamic>(url);
             return (decimal?)json?.last_close;
         }

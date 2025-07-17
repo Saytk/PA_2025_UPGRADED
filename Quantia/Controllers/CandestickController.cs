@@ -19,7 +19,7 @@ namespace Quantia.Controllers
         {
             _httpClient = httpClientFactory.CreateClient();
             _backendBaseUrl = config["BackendBaseUrl"]?.TrimEnd('/')
-                                ?? "https://api-test-049u.onrender.com";
+                                ?? "http://127.0.0.1:8000";
         }
 
         /* ------------------------------------------------------------

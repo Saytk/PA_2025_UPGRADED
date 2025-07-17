@@ -10,7 +10,7 @@ namespace Quantia.Services
     public class TradeSuggestionService
     {
         private readonly HttpClient _http;
-        private const string BASE = "https://api-test-049u.onrender.com";
+        private const string BASE = "http://127.0.0.1:8000";
 
         public TradeSuggestionService(HttpClient http) => _http = http;
 
