@@ -7,268 +7,745 @@
 }
 
 <h1>Prediction</h1>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">    
+<!-- =======================================================
+     LIBRARIES (Versions épinglées & hash SRI corrects)
+     ======================================================= -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+      crossorigin="anonymous" />
 
-<script src="https://cdn.plot.ly/plotly-latest.min.js" integrity="sha384-tO9sf7DbNI60vZqNSXwKdISdW4NOWS4dtSYg4zXgsOsmKRcBPylcyxvzTC3N6ki2" crossorigin="anonymous"></script>
+<script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
+
+<!-- Bootstrap bundle (inclut Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
+        crossorigin="anonymous"></script>
+
 <style>
-        /* styles identiques à la version précédente */
-        body{margin:0;font-family:'Segoe UI',sans-serif;background:#f9fafb;}
-        .main{padding:40px;flex-grow:1;}
-        .card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.05);}
-        .prediction-high{background:rgba(0,255,0,.2);}
-        .prediction-medium{background:rgba(255,255,0,.2);}
-        .prediction-low{background:rgba(255,0,0,.2);}
-    </style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI',sans-serif;
+        background: #f9fafb;
+    }
+
+    .main {
+        padding: 40px;
+        flex-grow: 1;
+    }
+
+    .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,.05);
+    }
+
+    .prediction-high {
+        background: rgba(0,255,0,.2);
+    }
+
+    .prediction-medium {
+        background: rgba(255,255,0,.2);
+    }
+
+    .prediction-low {
+        background: rgba(255,0,0,.2);
+    }
+
+    /* Modal trades table: make body scrollable */
+    #perf-details-modal .modal-body {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .small-mono {
+        font-family: Consolas, monospace;
+        font-size: 0.85rem;
+    }
+</style>
+
 <body>
     <div style="display:flex;">
         <div class="main container-fluid">
-            <nav class="navbar navbar-light bg-light mb-4 rounded">
-                <a class="navbar-brand" href="/Prediction">Crypto Forecasting</a>
-                <ul class="nav">
-                    <li class="nav-item"><a class="nav-link active" href="/Prediction">Prediction Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Prediction/Pipeline">ML Pipeline</a></li>
-                </ul>
-            </nav>
 
+          
             <h1 class="mb-4">Cryptocurrency Price Prediction Visualization</h1>
 
+            <!-- ================= Paramètres API ================= -->
             <form id="config-form" class="row g-3 mb-4">
                 <div class="col-md-5">
-                    <label class="form-label">API URL</label>
-                    <input id="api-url" class="form-control" value="http://localhost:8000/pattern/predict-latest" />
+                    <label class="form-label">Symbol</label>
+                    <input id="symbol" class="form-control" value="BTCUSDT" disabled="true"/>
+                    <input id="api-url" class="form-control"
+                           value="http://localhost:8000/pattern/predict-latest" hidden="true" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Symbol</label>
-                    <input id="symbol" class="form-control" value="BTCUSDT" />
                 </div>
-                <div class="col-md-2 d-flex align-items-md-center">
+                <div class="col-md-2 d-flex align-items-md-end">
                     <button class="btn btn-primary w-100">Fetch Predictions</button>
                 </div>
             </form>
+
+            <!-- ================= Paramètres Performance / Backtest ================= -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <b>Paramètres Performance / Backtest</b>
+                </div>
+                <div class="card-body row g-3">
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">Capital initial</label>
+                        <input id="perf-start-capital" type="number" class="form-control" value="10000" min="0" step="100">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">% max/trade</label>
+                        <input id="perf-max-pct" type="number" class="form-control" value="20" min="0" max="100" step="1">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">Frais (bps)</label>
+                        <input id="perf-fee-bps" type="number" class="form-control" value="5" min="0" step="1">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">Seuil Long ≥</label>
+                        <input id="perf-long-thresh" type="number" class="form-control" value="0.55" min="0" max="1" step="0.01">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">Seuil Short ≤</label>
+                        <input id="perf-short-thresh" type="number" class="form-control" value="0.45" min="0" max="1" step="0.01">
+                    </div>
+                    <div class="col-12 col-md-2 d-flex align-items-md-end">
+                        <button id="perf-recalc-btn" class="btn btn-outline-primary w-100" type="button">Recalculer la performance</button>
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted">
+                            Taille trade = conviction × %max = |p-0.5|×2 × %max. Direction: Long si p ≥ seuilLong; Short si p ≤ seuilShort; sinon Flat.
+                        </small>
+                    </div>
+                </div>
+            </div>
 
             <div id="sample-data-alert" class="alert alert-warning" style="display:none;">
                 Ceci est un jeu de données d’exemple…
             </div>
 
+            <!-- ================= 1m Chart ================= -->
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white"><b id="chart-title">Price & Confidence</b></div>
-                <div class="card-body"><div id="price-chart" style="height:500px;"></div></div>
+                <div class="card-header bg-primary text-white">
+                    <b id="chart-title">Price &amp; Confidence</b>
+                </div>
+                <div class="card-body">
+                    <div id="price-chart" style="height:500px;"></div>
+                </div>
             </div>
 
-            <div class="card">
+            <!-- ================= 1m Table + Perf ================= -->
+            <div class="card mb-1">
                 <div class="card-header bg-primary text-white"><b>Prediction Details</b></div>
                 <div class="card-body">
                     <table id="prediction-table" class="table table-striped table-hover">
-                        <thead><tr><th>Time</th><th>Price</th><th>Up Probability</th><th>Strategy</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Price</th>
+                                <th>Up Probability</th>
+                                <th>Strategy</th>
+                            </tr>
+                        </thead>
                         <tbody></tbody>
                     </table>
+                    <!-- Résumé perf 1m -->
+                    <div id="perf-1m-summary" class="alert alert-info mt-2 d-flex justify-content-between align-items-center" style="display:none;">
+                        <span id="perf-1m-summary-text"></span>
+                        <button type="button" class="btn btn-sm btn-light ms-2" data-perf-detail="1m">Détails calculs (1m)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= 5m Chart ================= -->
+            <div class="card mb-4 mt-4">
+                <div class="card-header bg-primary text-white"><b>5-Minute Model Visualization</b></div>
+                <div class="card-body">
+                    <div id="five-min-chart" style="height:400px;"></div>
+                </div>
+            </div>
+
+            <!-- ================= 5m Table + Perf ================= -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white"><b>5-Minute Prediction Details</b></div>
+                <div class="card-body">
+                    <table id="prediction-table-5m" class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Price</th>
+                                <th>Up Probability</th>
+                                <th>Strategy</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <!-- Résumé perf 5m -->
+                    <div id="perf-5m-summary" class="alert alert-info mt-2 d-flex justify-content-between align-items-center" style="display:none;">
+                        <span id="perf-5m-summary-text"></span>
+                        <button type="button" class="btn btn-sm btn-light ms-2" data-perf-detail="5m">Détails calculs (5m)</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= MODAL ================= -->
+    <div class="modal fade" id="perf-details-modal" tabindex="-1" aria-labelledby="perf-details-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable" id="perf-details-modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="perf-details-modal-label" class="modal-title">Détails calculs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="perf-details-formulas" class="mb-3 small-mono text-muted"></div>
+                    <div class="table-responsive">
+                        <table id="perf-details-table" class="table table-sm table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Time In</th>
+                                    <th>Time Out</th>
+                                    <th>Dir</th>
+                                    <th>pUp</th>
+                                    <th>Conv%</th>
+                                    <th>Size%</th>
+                                    <th>Notional</th>
+                                    <th>EntryPx</th>
+                                    <th>ExitPx</th>
+                                    <th>ΔPx%</th>
+                                    <th>PnL$</th>
+                                    <th>Frais</th>
+                                    <th>Capital Après</th>
+                                    <th>Correct?</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Fermer</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        /* ----------------- Endpoints MVC ----------------- */
-        const endpointPredict = '/Prediction/GetPredictions';
-        const endpointRefresh = '/Prediction/RefreshModel';
+    <!-- ====================== SCRIPTS ====================== -->
+    @section Scripts {
+        <script>
+            /* =======================================================
+               Global State
+               ======================================================= */
+            const endpointPredict = '/Prediction/GetPredictions';
+            const endpoint5Min    = '/Prediction/Get5MinutePredictions';
 
-        document.addEventListener('DOMContentLoaded', ()=>{
-            fetchPredictions();
-            document.getElementById('config-form').addEventListener('submit',e=>{
-                e.preventDefault(); fetchPredictions();
-            });
-        });
+            let lastData1m = null; // {predictions:[]}
+            let lastData5m = null;
 
-        function getStrategy(p){if(p>.75)return{a:'Strong Buy',c:'success'};
-            if(p>=.6)return{a:'Buy',c:'info'};
-            if(p>=.4)return{a:'Hold',c:'warning'};
-            if(p>=.25)return{a:'Sell',c:'secondary'};
-            return{a:'Strong Sell',c:'danger'};}
+            // Bootstrap modal instance (init on demand)
+            let perfDetailsModal = null;
 
-        function fetchPredictions(){
-            const apiUrl=document.getElementById('api-url').value.trim();
-            const symbol=document.getElementById('symbol').value.trim();
-            console.log(JSON.stringify({apiUrl,symbol}));
-            fetch(endpointPredict,{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({apiUrl,symbol})
-            })
-            .then(r=>r.json()).then(displayPredictions)
-            .catch(err=>alert('Fetch error: '+err));
-        }
+            document.addEventListener('DOMContentLoaded', () => {
+                // initial fetch
+                fetchPredictions();
 
-        /* --- displayPredictions identique à la version précédente --- */
-        function displayPredictions(data){
-            document.getElementById('sample-data-alert').style.display=data.is_sample?'block':'none';
-            document.getElementById('chart-title').textContent = `${data.symbol} Price with Prediction Confidence`;
+                // reload on form submit
+                document.getElementById('config-form').addEventListener('submit', e => {
+                    e.preventDefault();
+                    fetchPredictions();
+                });
 
-            const t=data.predictions.map(p=>new Date(p.timestamp_utc));
-            const y=data.predictions.map(p=>p.close);
-            const p=data.predictions.map(p=>p.prediction);
-            const colors=p.map(v=>`rgba(${Math.round(255*(1-v))},${Math.round(255*v)},0,.8)`);
+                // recalc performance when user clicks button
+                document.getElementById('perf-recalc-btn').addEventListener('click', () => {
+                    recalcAllPerformance();
+                });
 
-            Plotly.newPlot('price-chart',[
-                {x:t,y:y,mode:'lines',name:'Price',line:{width:2}},
-                {x:t,y:y,mode:'markers',name:'Confidence',
-                 marker:{size:12,color:colors,line:{width:1,color:'black'}},
-                 text:p.map(v=>v.toFixed(3)),
-                 hovertemplate:'%{x}<br>%{y:$,.2f}<br>pUp=%{text}<extra></extra>'}],
-                {margin:{t:30},xaxis:{title:'Time'},yaxis:{title:'Price (USDT)'}});
-
-            const tbody=document.querySelector('#prediction-table tbody');
-            tbody.innerHTML='';
-            data.predictions.forEach(pr=>{
-                const s=getStrategy(pr.prediction);
-                const tr=document.createElement('tr');
-                if(pr.prediction>.75)tr.classList.add('prediction-high');
-                else if(pr.prediction<.25)tr.classList.add('prediction-low');
-                else tr.classList.add('prediction-medium');
-
-                tr.innerHTML=`<td>${new Date(pr.timestamp_utc).toLocaleTimeString()}</td>
-                               <td>${pr.close.toLocaleString('en-US',{style:'currency',currency:'USD'})}</td>
-                               <td>${(pr.prediction*100).toFixed(2)} %</td>
-                               <td><span class="badge bg-${s.c}">${s.a}</span></td>`;
-                tbody.appendChild(tr);
-            });
-        }
-    </script>
-</body>
-<form id="trade-form">@Html.AntiForgeryToken()</form>
-
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<div class="p-6 max-w-7xl mx-auto">
-    <h1 class="text-3xl font-bold text-cyan-400 mb-8 text-center">🚀 Live Trading Signals</h1>
-
-    <!-- Signaux -->
-    <div id="signals" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
-
-    <!-- Positions ouvertes -->
-    <h2 class="text-xl mt-10 mb-4 font-semibold text-white">📈 Open Positions</h2>
-    <table class="min-w-full table-auto bg-gray-800 text-white rounded overflow-hidden">
-        <thead>
-            <tr class="bg-cyan-900 text-left text-sm uppercase">
-                <th class="p-2">Symbol</th>
-                <th class="p-2">Entry</th>
-                <th class="p-2">Current</th>
-                <th class="p-2">PnL $</th>
-                <th class="p-2">PnL %</th>
-            </tr>
-        </thead>
-        <tbody id="positions">
-            @foreach (var t in Model.ExecutedTrades.Where(e => e.SellDate == null))
-            {
-                <tr data-id="@t.Id" data-symbol="@t.CryptoSymbol" data-entry="@t.BuyPrice" data-qty="@t.Quantity">
-                    <td class="p-2">@t.CryptoSymbol</td>
-                    <td class="p-2">@t.BuyPrice</td>
-                    <td class="p-2 current">–</td>
-                    <td class="p-2 pnl">–</td>
-                    <td class="p-2 pnlpct">–</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
-
-@section Scripts {
-    <script>
-        const signals = JSON.parse('@Html.Raw(sigsJson)');
-        const grid = document.getElementById("signals");
-
-        function buildSignalCard(s) {
-            const sideColor = s.Side === "BUY" || s.Side === "LONG" ? "text-green-400" : "text-red-400";
-            return `
-            <div class="bg-gray-900 p-4 rounded-lg shadow hover:shadow-lg transition">
-                <h3 class="text-lg font-semibold ${sideColor} mb-2">${s.Side} – ${s.Symbol}</h3>
-                <ul class="text-sm space-y-1 text-gray-300">
-                    <li><strong>Entry:</strong> ${s.Entry}</li>
-                    <li><strong>SL:</strong> ${s.StopLoss}</li>
-                    <li><strong>TP:</strong> ${s.TakeProfit}</li>
-                    <li><strong>Confidence:</strong> ${(s.Confidence * 100).toFixed(1)}%</li>
-                </ul>
-                <button onclick="execTrade('${s.Symbol}', ${s.EntryPrice}, ${s.StopLoss}, ${s.TakeProfit})"
-                        class="mt-4 w-full bg-cyan-500 hover:bg-cyan-600 text-white font-medium py-1.5 rounded">
-                    Trade
-                </button>
-            </div>`;
-        }
-
-        function renderSignals() {
-            grid.innerHTML = signals.length
-                ? signals.map(buildSignalCard).join("")
-                : `<p class="text-gray-400 col-span-full text-center">No signal available</p>`;
-        }
-
-        async function execTrade(symbol, entry, sl, tp) {
-            const qty = prompt("Quantity ?", "0.001");
-            if (!qty || isNaN(qty)) return;
-
-            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-
-            if (!token) {
-                alert("Security token missing");
-                return;
-            }
-
-            const model = {
-                CryptoSymbol: symbol,
-                Quantity: +qty,
-                BuyPrice: +entry,
-                StopLoss: +sl,
-                TakeProfit: +tp,
-                BuyDate: new Date().toISOString()
-            };
-
-            const response = await fetch('/Trade/Create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify(model)
+                // delegate detail buttons (1m/5m)
+                document.body.addEventListener('click', e => {
+                    const btn = e.target.closest('[data-perf-detail]');
+                    if (!btn) return;
+                    const tf = btn.getAttribute('data-perf-detail'); // '1m' or '5m'
+                    showPerfDetailsModal(tf);
+                });
             });
 
-            if (response.ok) {
-                location.reload();
-            } else {
-                const err = await response.text();
-                alert("Trade failed:\n" + err);
+            /* =======================================================
+               UI Helpers
+               ======================================================= */
+
+            function formatCurrency(v) {
+                return v.toLocaleString('en-US', { style:'currency', currency:'USD', maximumFractionDigits:2 });
             }
-        }
 
-        async function updateLivePnL() {
-            const rows = document.querySelectorAll("#positions tr");
-            for (const row of rows) {
-                const symbol = row.dataset.symbol;
-                const entry = parseFloat(row.dataset.entry);
-                const qty = parseFloat(row.dataset.qty);
+            function formatPercent(v, dec=2) {
+                return (v*100).toFixed(dec) + '%';
+            }
 
-                try {
-                    const r = await fetch(`/data/${symbol}/last_candle`);
-                    const j = await r.json();
-                    const last = +j.price_usdt;
+            function clamp01(x) {
+                return x < 0 ? 0 : (x > 1 ? 1 : x);
+            }
 
-                    const pnl = (last - entry) * qty;
-                    const pct = ((last - entry) / entry) * 100;
+            function getStrategy(p) {
+                if (p > 0.75) return { a:'Strong Buy',  c:'success'   };
+                if (p >= 0.6)  return { a:'Buy',        c:'info'      };
+                if (p >= 0.4)  return { a:'Hold',       c:'warning'   };
+                if (p >= 0.25) return { a:'Sell',       c:'secondary' };
+                return              { a:'Strong Sell', c:'danger'    };
+            }
 
-                    row.querySelector(".current").textContent = last.toFixed(2);
-                    row.querySelector(".pnl").textContent = pnl.toFixed(2);
-                    row.querySelector(".pnlpct").textContent = pct.toFixed(2) + "%";
+            /* =======================================================
+               Fetch 1m Predictions
+               ======================================================= */
+            function fetchPredictions() {
+                const apiUrl = document.getElementById('api-url').value.trim();
+                const symbol = document.getElementById('symbol').value.trim();
 
-                    row.classList.toggle("bg-green-900", pnl > 0);
-                    row.classList.toggle("bg-red-900", pnl < 0);
-                } catch {
-                    continue;
+                fetch(endpointPredict, {
+                    method : 'POST',
+                    headers: { 'Content-Type':'application/json' },
+                    body   : JSON.stringify({ apiUrl, symbol })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    lastData1m = data;
+                    displayPredictions1m(data);
+                    // then fetch 5m
+                    fetch5MinutePredictions();
+                })
+                .catch(err => alert('Fetch error: '+ err));
+            }
+
+            function displayPredictions1m(data) {
+                document.getElementById('sample-data-alert').style.display =
+                    data.is_sample ? 'block' : 'none';
+
+                document.getElementById('chart-title').textContent =
+                    `${data.symbol} Price with Prediction Confidence`;
+
+                const t = data.predictions.map(p => new Date(p.timestamp_utc));
+                const y = data.predictions.map(p => p.close);
+                const p = data.predictions.map(p => p.prediction);
+                const colors = p.map(v => `rgba(${Math.round(255*(1-v))},${Math.round(255*v)},0,.8)`);
+
+                Plotly.newPlot('price-chart', [
+                    { x:t, y:y, mode:'lines',   name:'Price', line:{width:2} },
+                    { x:t, y:y, mode:'markers', name:'Confidence',
+                      marker:{size:12, color:colors, line:{width:1, color:'black'}},
+                      text:p.map(v => v.toFixed(3)),
+                      hovertemplate:'%{x}<br>%{y:$,.2f}<br>pUp=%{text}<extra></extra>' }
+                ], {
+                    margin:{t:30},
+                    xaxis:{title:'Time'},
+                    yaxis:{title:'Price (USDT)'}
+                });
+
+                // table
+                const tbody = document.querySelector('#prediction-table tbody');
+                tbody.innerHTML = '';
+                data.predictions.forEach(pr => {
+                    const s = getStrategy(pr.prediction);
+                    const tr = document.createElement('tr');
+
+                    if (pr.prediction > .75)      tr.classList.add('prediction-high');
+                    else if (pr.prediction < .25) tr.classList.add('prediction-low');
+                    else                          tr.classList.add('prediction-medium');
+
+                    tr.innerHTML = `
+                        <td>${new Date(pr.timestamp_utc).toLocaleTimeString()}</td>
+                        <td>${pr.close.toLocaleString('en-US',{style:'currency',currency:'USD'})}</td>
+                        <td>${(pr.prediction*100).toFixed(2)} %</td>
+                        <td><span class="badge bg-${s.c}">${s.a}</span></td>`;
+                    tbody.appendChild(tr);
+                });
+
+                // perf summary (uses current perf params)
+                recalcPerfSummary(data.predictions, '1m');
+            }
+
+            /* =======================================================
+               Fetch 5m Predictions
+               ======================================================= */
+            function fetch5MinutePredictions() {
+                const apiUrl = document.getElementById('api-url').value.trim();
+                const symbol = document.getElementById('symbol').value.trim();
+
+                fetch(endpoint5Min, {
+                    method : 'POST',
+                    headers: { 'Content-Type':'application/json' },
+                    body   : JSON.stringify({ apiUrl, symbol })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    lastData5m = data;
+                    displayPredictions5m(data);
+                })
+                .catch(err => console.error('Error fetching 5-minute data:', err));
+            }
+
+            function displayPredictions5m(data) {
+                if (!data || !data.predictions || data.predictions.length === 0) return;
+
+                const ts   = data.predictions.map(p => new Date(p.timestamp_utc));
+                const pr   = data.predictions.map(p => p.close);
+                const prob = data.predictions.map(p => p.prediction);
+
+                /* prix prédit (simple scaling relatif à la proba) */
+                const dPct = prob.map(p => (p - 0.5) * 0.005);
+                const pr5  = pr.map((price,i) => price*(1+dPct[i]));
+
+                /* traits verticaux pointillés */
+                const dotted = ts.map( (x,i) => ({
+                    type:'line',
+                    xref:'x', yref:'y',
+                    x0:x, x1:x,
+                    y0:pr[i],
+                    y1:pr5[i],
+                    line:{ color:'rgba(120,120,120,0.6)', width:1, dash:'dot' }
+                }));
+
+                Plotly.newPlot('five-min-chart', [
+                    { x:ts, y:pr,   mode:'lines', name:'Current Price',
+                      line:{ color:'rgba(0,123,255,0.8)', width:2 } },
+                    { x:ts, y:pr5, mode:'markers', name:'5-Min Predicted Price',
+                      marker:{
+                          size:12, symbol:'diamond',
+                          color:prob.map(p => `rgba(${Math.round(255*(1-p))},${Math.round(255*p)},0,0.8)`),
+                          line:{ width:1, color:'black' }
+                      },
+                      customdata: pr.map(p => [p]),
+                      text: prob.map(p => {
+                          const dir  = p>0.5 ? '↑' : '↓';
+                          const conf = Math.abs(p-0.5)*200;
+                          return `5-Min Prediction: ${dir} ${conf.toFixed(1)} %`;
+                      }),
+                      hovertemplate:
+                        '%{x}<br>Current: %{customdata[0]:$,.2f}<br>%{text}<extra></extra>'
+                    }
+                ], {
+                    title:'5-Minute Price Prediction Model',
+                    xaxis:{ title:'Time' },
+                    yaxis:{ title:'Price (USDT)' },
+                    hovermode:'closest',
+                    margin:{ t:50, r:50, b:50, l:50 },
+                    shapes:dotted
+                });
+
+                // table 5m
+                const tbody = document.querySelector('#prediction-table-5m tbody');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    data.predictions.forEach(pr => {
+                        const s = getStrategy(pr.prediction);
+                        const tr = document.createElement('tr');
+
+                        if (pr.prediction > .75)      tr.classList.add('prediction-high');
+                        else if (pr.prediction < .25) tr.classList.add('prediction-low');
+                        else                          tr.classList.add('prediction-medium');
+
+                        tr.innerHTML = `
+                            <td>${new Date(pr.timestamp_utc).toLocaleTimeString()}</td>
+                            <td>${pr.close.toLocaleString('en-US',{style:'currency',currency:'USD'})}</td>
+                            <td>${(pr.prediction*100).toFixed(2)} %</td>
+                            <td><span class="badge bg-${s.c}">${s.a}</span></td>`;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                // perf summary (uses current perf params)
+                recalcPerfSummary(data.predictions, '5m');
+            }
+
+            /* =======================================================
+               Performance Configuration
+               ======================================================= */
+            function getPerfParams() {
+                const startCapital = parseFloat(document.getElementById('perf-start-capital').value) || 0;
+                const maxPct       = parseFloat(document.getElementById('perf-max-pct').value) / 100; // 0-1
+                const feeBps       = parseFloat(document.getElementById('perf-fee-bps').value) || 0;
+                const longThresh   = parseFloat(document.getElementById('perf-long-thresh').value);
+                const shortThresh  = parseFloat(document.getElementById('perf-short-thresh').value);
+
+                // safety clamps
+                return {
+                    startCapital: startCapital > 0 ? startCapital : 0,
+                    maxPct: maxPct < 0 ? 0 : (maxPct > 1 ? 1 : maxPct),
+                    feeRate: feeBps / 10000, // convert bps -> fraction
+                    longThresh: clamp01(longThresh),
+                    shortThresh: clamp01(shortThresh)
+                };
+            }
+
+            /* Recalculate both timeframes with current params */
+            function recalcAllPerformance() {
+                if (lastData1m && lastData1m.predictions) {
+                    recalcPerfSummary(lastData1m.predictions, '1m');
+                }
+                if (lastData5m && lastData5m.predictions) {
+                    recalcPerfSummary(lastData5m.predictions, '5m');
                 }
             }
 
-            setTimeout(updateLivePnL, 10000);
-        }
+            /* =======================================================
+               Backtest Engine
+               ======================================================= */
+            /**
+             * Build trades + perf metrics.
+             * rows: [{timestamp_utc, close, prediction}]
+             * cfg:   {startCapital, maxPct, feeRate, longThresh, shortThresh}
+             * Returns: {
+             *   accuracy, good, totalCounted, trades:[],
+             *   startCapital, endCapital, pnl, pnlPct
+             * }
+             * Note: accuracy is computed only on bars where we took a position (Long/Short).
+             */
+            function backtest(rows, cfg) {
+                if (!rows || rows.length < 2) {
+                    return {
+                        accuracy: 0,
+                        good: 0,
+                        totalCounted: 0,
+                        startCapital: cfg.startCapital,
+                        endCapital: cfg.startCapital,
+                        pnl: 0,
+                        pnlPct: 0,
+                        trades: []
+                    };
+                }
 
-        renderSignals();
-        updateLivePnL();
-    </script>
-}
+                let capital = cfg.startCapital;
+                let good = 0, counted = 0;
+                const trades = [];
+
+                for (let i = 0; i < rows.length - 1; i++) {
+                    const cur = rows[i], nxt = rows[i+1];
+                    const tIn  = new Date(cur.timestamp_utc);
+                    const tOut = new Date(nxt.timestamp_utc);
+                    const pUp  = +cur.prediction;
+                    const pxIn = +cur.close;
+                    const pxOut= +nxt.close;
+
+                    // Determine direction
+                    let dir = 0; // 0=flat, +1=long, -1=short
+                    if (pUp >= cfg.longThresh) dir = +1;
+                    else if (pUp <= cfg.shortThresh) dir = -1;
+                    else dir = 0;
+
+                    // conviction 0-1
+                    const conv = clamp01(Math.abs(pUp - 0.5) * 2);
+
+                    // size fraction
+                    const sizeFrac = conv * cfg.maxPct; // e.g. 0.6 * 0.2 = 0.12
+                    const notional = capital * sizeFrac; // risked per trade
+
+                    let pnlTrade = 0;
+                    let fee = 0;
+                    let pxChgPct = 0;
+                    let correct = null; // null if flat
+
+                    if (dir !== 0 && notional > 0 && capital > 0) {
+                        // return
+                        pxChgPct = (pxOut - pxIn) / pxIn;
+                        // PnL = dir * notional * pxChgPct
+                        pnlTrade = dir * notional * pxChgPct;
+
+                        // fees both sides
+                        fee = notional * cfg.feeRate * 2;
+
+                        // update capital
+                        capital += pnlTrade - fee;
+
+                        // accuracy
+                        counted++;
+                        if (dir > 0) {
+                            correct = pxOut > pxIn;
+                        } else {
+                            correct = pxOut < pxIn;
+                        }
+                        if (correct) good++;
+
+                    } else {
+                        // flat: no trade, no fee, no counting
+                        pxChgPct = (pxOut - pxIn) / pxIn;
+                        correct = null;
+                    }
+
+                    trades.push({
+                        idx: i+1,
+                        timeIn: tIn,
+                        timeOut: tOut,
+                        dir,
+                        pUp,
+                        conv,
+                        sizeFrac,
+                        notional,
+                        entryPx: pxIn,
+                        exitPx: pxOut,
+                        pxChgPct,
+                        pnl: pnlTrade,
+                        fee,
+                        capitalAfter: capital,
+                        correct
+                    });
+                }
+
+                const pnl = capital - cfg.startCapital;
+                const pnlPct = cfg.startCapital ? pnl / cfg.startCapital : 0;
+                const accuracy = counted ? good / counted : 0;
+
+                return {
+                    accuracy,
+                    good,
+                    totalCounted: counted,
+                    startCapital: cfg.startCapital,
+                    endCapital: capital,
+                    pnl,
+                    pnlPct,
+                    trades
+                };
+            }
+
+            /* =======================================================
+               Recalc + Update Summary UI
+               ======================================================= */
+            function recalcPerfSummary(rows, timeframeTag /* '1m'|'5m' */) {
+                const cfg = getPerfParams();
+                const perf = backtest(rows, cfg);
+
+                const elemId = timeframeTag === '1m' ? 'perf-1m-summary' : 'perf-5m-summary';
+                const elemTxtId = timeframeTag === '1m' ? 'perf-1m-summary-text' : 'perf-5m-summary-text';
+
+                const elWrap = document.getElementById(elemId);
+                const elTxt  = document.getElementById(elemTxtId);
+                if (!elWrap || !elTxt) return;
+
+                // choose alert color
+                elWrap.classList.remove('alert-info','alert-success','alert-danger','alert-secondary');
+                if (perf.pnl >  0.0001) elWrap.classList.add('alert-success');
+                else if (perf.pnl < -0.0001) elWrap.classList.add('alert-danger');
+                else elWrap.classList.add('alert-secondary');
+
+                const accPct  = (perf.accuracy * 100).toFixed(1);
+                const pnlStr  = formatCurrency(perf.pnl);
+                const capEnd  = formatCurrency(perf.endCapital);
+                const pnlPct  = (perf.pnlPct * 100).toFixed(2);
+
+                elTxt.innerHTML = `
+                    Accuracy (positions): <b>${accPct}%</b> (${perf.good}/${perf.totalCounted}).
+                    PnL: <b>${pnlStr}</b> (${pnlPct}%).
+                    Capital final: ${capEnd}.
+                `;
+                elWrap.style.display = 'flex';
+            }
+
+            /* =======================================================
+               Perf Details Modal (Bootstrap + Fallback)
+               ======================================================= */
+
+            function ensureModalInstance() {
+                // If already created with bootstrap (or fallback), return it
+                if (perfDetailsModal) return perfDetailsModal;
+
+                const modalEl = document.getElementById('perf-details-modal');
+
+                // Use Bootstrap if available
+                if (window.bootstrap && bootstrap.Modal) {
+                    perfDetailsModal = new bootstrap.Modal(modalEl);
+                    return perfDetailsModal;
+                }
+
+                // --- Fallback vanilla modal ---
+                // Minimal show/hide that mimique bootstrap classes so l'UI reste utilisable
+                perfDetailsModal = {
+                    show() {
+                        modalEl.classList.add('show');
+                        modalEl.style.display = 'block';
+                        modalEl.removeAttribute('aria-hidden');
+                        modalEl.setAttribute('aria-modal', 'true');
+                        modalEl.style.backgroundColor = 'rgba(0,0,0,.5)';
+                    },
+                    hide() {
+                        modalEl.classList.remove('show');
+                        modalEl.style.display = 'none';
+                        modalEl.setAttribute('aria-hidden', 'true');
+                        modalEl.removeAttribute('aria-modal');
+                        modalEl.style.backgroundColor = '';
+                    }
+                };
+
+                // fermer via bouton data-bs-dismiss fallback
+                modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+                    btn.addEventListener('click', () => perfDetailsModal.hide());
+                });
+
+                return perfDetailsModal;
+            }
+
+            function showPerfDetailsModal(timeframeTag) {
+                const data = timeframeTag === '1m' ? lastData1m : lastData5m;
+                if (!data || !data.predictions || data.predictions.length < 2) return;
+
+                const cfg = getPerfParams();
+                const perf = backtest(data.predictions, cfg);
+
+                // Fill formulas / header
+                const modalLabel = document.getElementById('perf-details-modal-label');
+                modalLabel.textContent = `Détails calculs (${timeframeTag})`;
+
+                const fDiv = document.getElementById('perf-details-formulas');
+                fDiv.innerHTML = `
+                    <div>Capital initial: ${formatCurrency(cfg.startCapital)}.</div>
+                    <div>Taille trade = conviction × %max = |p-0.5|×2 × ${(cfg.maxPct*100).toFixed(1)}%.</div>
+                    <div>Direction: Long si p ≥ ${cfg.longThresh.toFixed(2)}, Short si p ≤ ${cfg.shortThresh.toFixed(2)}, sinon Flat.</div>
+                    <div>Frais (aller+retour): notional × ${(cfg.feeRate*100).toFixed(4)}% × 2.</div>
+                    <div>PnL = dir × notional × ΔPx% − frais.</div>
+                    <div>Accuracy: seulement sur trades pris (Long/Short), correct si ΔPx&gt;0 (Long) ou ΔPx&lt;0 (Short).</div>
+                `;
+
+                // Fill trades table
+                const tbody = document.querySelector('#perf-details-table tbody');
+                tbody.innerHTML = '';
+
+                perf.trades.forEach(tr => {
+                    const dirStr = tr.dir>0 ? 'Long' : (tr.dir<0 ? 'Short' : 'Flat');
+                    const row = document.createElement('tr');
+
+                    if (tr.dir>0) row.classList.add('table-success');
+                    else if (tr.dir<0) row.classList.add('table-danger');
+                    else row.classList.add('table-secondary');
+
+                    const correctStr = tr.correct === null ? '' : (tr.correct ? '✓' : '✗');
+
+                    row.innerHTML = `
+                        <td>${tr.idx}</td>
+                        <td>${tr.timeIn.toLocaleString()}</td>
+                        <td>${tr.timeOut.toLocaleString()}</td>
+                        <td>${dirStr}</td>
+                        <td>${tr.pUp.toFixed(3)}</td>
+                        <td>${(tr.conv*100).toFixed(1)}%</td>
+                        <td>${(tr.sizeFrac*100).toFixed(1)}%</td>
+                        <td>${formatCurrency(tr.notional)}</td>
+                        <td>${tr.entryPx.toFixed(2)}</td>
+                        <td>${tr.exitPx.toFixed(2)}</td>
+                        <td>${(tr.pxChgPct*100).toFixed(3)}%</td>
+                        <td>${formatCurrency(tr.pnl)}</td>
+                        <td>${formatCurrency(tr.fee)}</td>
+                        <td>${formatCurrency(tr.capitalAfter)}</td>
+                        <td>${correctStr}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Show modal (bootstrap or fallback)
+                ensureModalInstance().show();
+            }
+        </script>
+    }
+</body>
