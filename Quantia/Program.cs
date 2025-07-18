@@ -95,7 +95,7 @@ builder.Services.AddScoped<PortfolioEquityService>();
 builder.Services.AddHttpClient("MLApi", client =>
 {
     var baseUrl = builder.Environment.IsProduction() 
-        ? "https://pa-api-cryptov1.onrender.com/"  // URL Kubernetes
+        ? "https://pa-api-cryptov1.onrender.com"  // URL Kubernetes
         : "http://localhost:8000";      // URL développement
     client.BaseAddress = new Uri(baseUrl);
 });
