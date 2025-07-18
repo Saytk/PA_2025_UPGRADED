@@ -15,7 +15,7 @@ namespace Quantia.Controllers
     [Route("Prediction")]
     public class PredictionController : Controller
     {
-        private const string ML_API_BASE = "https://api-test-049u.onrender.com";
+        private const string ML_API_BASE = "http://127.0.0.1:8000";
 
         private readonly IHttpClientFactory _http;
         private readonly PortfolioEquityService _equityService;
@@ -135,7 +135,7 @@ namespace Quantia.Controllers
 
         /*---------------------------------------------------------------*/
         public record PipelineRequest(string Mode, string Symbol, int Days, string? ModelPath);
-        public record PredictRequest(string ApiUrl, string Symbol);
+        public record PredictRequest(string ApiUrl, string Symbol, DateTime? Date = null, int? Days = null);
 
 
         // POST /Prediction/GetPredictions
@@ -144,14 +144,64 @@ namespace Quantia.Controllers
         {
             try
             {
-                // exemple : http://localhost:8000/pattern/predict-lates
-                var url = $"{dto.ApiUrl}?symbol={dto.Symbol}";
+                string url;
+
+                // Check if we're requesting historical data
+                if (dto.Date.HasValue || dto.Days.HasValue)
+                {
+                    // Use the historical endpoint
+                    int days = dto.Days ?? 7; // Default to 7 days if not specified
+                    url = $"{ML_API_BASE}/prediction/historical/{dto.Symbol}?days={days}";
+
+                    // Note: The Date parameter is not used directly with the API
+                    // but could be used for filtering the results on the client side
+                }
+                else
+                {
+                    // Use the regular endpoint for latest predictions
+                    url = $"{dto.ApiUrl}?symbol={dto.Symbol}";
+                }
+
                 var json = await MlClient.GetStringAsync(url);
                 return Content(json, "application/json");
             }
             catch (Exception ex)
             {
                 return Problem($"Error fetching predictions: {ex.Message}");
+            }
+        }
+
+        // POST /Prediction/Get5MinutePredictions
+        [HttpPost("Get5MinutePredictions")]
+        public async Task<IActionResult> Get5MinutePredictions([FromBody] PredictRequest dto)
+        {
+            try
+            {
+                string url;
+
+                // Check if we're requesting historical data
+                if (dto.Date.HasValue || dto.Days.HasValue)
+                {
+                    // Use the historical endpoint with the use-aggregated-model parameter set to true
+                    int days = dto.Days ?? 7; // Default to 7 days if not specified
+                    url = $"{ML_API_BASE}/prediction/historical/{dto.Symbol}?days={days}&use_aggregated=true";
+                }
+                else
+                {
+                    // Use the pattern endpoint for latest predictions with the use-aggregated-model parameter
+                    // First, ensure we're using the aggregated model
+                    await MlClient.PostAsync($"{ML_API_BASE}/prediction/use-aggregated-model?use_aggregated=true", null);
+
+                    // Then get the prediction
+                    url = $"{dto.ApiUrl}?symbol={dto.Symbol}&use_aggregated=true";
+                }
+
+                var json = await MlClient.GetStringAsync(url);
+                return Content(json, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Problem($"Error fetching 5-minute predictions: {ex.Message}");
             }
         }
     }
