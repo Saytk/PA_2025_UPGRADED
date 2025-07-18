@@ -15,7 +15,7 @@ namespace Quantia.Controllers
     [Route("Prediction")]
     public class PredictionController : Controller
     {
-        private const string ML_API_BASE = "http://127.0.0.1:8000";
+        private const string ML_API_BASE = "https://pa-api-cryptov1.onrender.com";
 
         private readonly IHttpClientFactory _http;
         private readonly PortfolioEquityService _equityService;
